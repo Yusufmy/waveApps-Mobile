@@ -1,0 +1,202 @@
+import 'package:flutter/material.dart';
+
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../../../utils/colors.dart';
+import '../controllers/call_screen_controller.dart';
+
+class CallScreenView extends GetView<CallScreenController> {
+  const CallScreenView({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(top: 12, bottom: 48),
+
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
+                child: buildAppBar(),
+              ),
+              const SizedBox(height: 32),
+              Padding(
+                padding: EdgeInsetsGeometry.symmetric(horizontal: 16),
+                child: buildSearch(),
+              ),
+              const SizedBox(height: 32),
+              Padding(
+                padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
+                child: buildCall(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildAppBar() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          "Calls",
+          style: GoogleFonts.poppins(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: DecorationImage(
+              image: AssetImage("assets/images/profile.jpg"),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildSearch() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "23",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+                fontSize: 40,
+              ),
+            ),
+            Text(
+              "audio, video calls",
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                color: AppColors.textGreeyColor,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.borderGreeyColor),
+          ),
+          child: Row(
+            children: [
+              Image.asset(
+                "assets/images/search.png",
+                width: 24,
+                height: 24,
+                color: Colors.black26,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                "Search friends",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black26,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildCall() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Recent Chats",
+          style: GoogleFonts.poppins(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 32),
+        ...List.generate(5, (index) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                height: 48,
+                width: 48,
+                margin: const EdgeInsets.only(bottom: 24),
+                // padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black26, width: 1),
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: AssetImage("assets/images/profile.jpg"),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Alexander",
+                    style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Send me the files....",
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      color: AppColors.textGreeyColor,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.borderGreeyColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Image.asset(
+                    "assets/images/phoneCall.png",
+                    width: 18,
+                    height: 18,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+}
