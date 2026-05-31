@@ -9,6 +9,7 @@ class ProfileCoreService extends GetxController {
   RxInt id = 0.obs;
   RxString fireBaseUid = ''.obs;
   RxString name = ''.obs;
+  RxString username = ''.obs;
   RxString email = ''.obs;
   RxString photo = ''.obs;
   RxString bio = ''.obs;
@@ -26,6 +27,7 @@ class ProfileCoreService extends GetxController {
         await storeId(data["id"] ?? "");
         await storeFirebaseUid(data["firebase_uid"] ?? "");
         await storeName(data["name"] ?? "");
+        await storeUserName(data["username"] ?? "");
         await storeEmail(data["email"] ?? "");
         await storePhotoProfile(data["photo"] ?? "");
         await storeBio(data["bio"] ?? "");
@@ -44,6 +46,7 @@ class ProfileCoreService extends GetxController {
     id.value = await getId() ?? 0;
     fireBaseUid.value = await getFirebaseUid() ?? '';
     name.value = await getName() ?? '';
+    username.value = await getUserName() ?? '';
     email.value = await getEmail() ?? '';
     photo.value = await getPhotoProfile() ?? '';
     bio.value = await getBio() ?? '';

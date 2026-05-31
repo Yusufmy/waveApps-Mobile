@@ -19,6 +19,11 @@ Future<void> storeName(String name) async {
   await prefs.setString('name', name);
 }
 
+Future<void> storeUserName(String userName) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('user_name', userName);
+}
+
 Future<void> storeEmail(String email) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('email', email);

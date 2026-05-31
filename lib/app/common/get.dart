@@ -9,6 +9,7 @@ Future<String?> getFirebaseUid() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('firebase_uid');
 }
+
 Future<int?> getId() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getInt('id');
@@ -17,6 +18,11 @@ Future<int?> getId() async {
 Future<String?> getName() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('name');
+}
+
+Future<String?> getUserName() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('user_name');
 }
 
 Future<String?> getEmail() async {

@@ -6,6 +6,8 @@ import '../modules/ChatScreen/ChatDetailScreen/CallDetailScreen/bindings/call_de
 import '../modules/ChatScreen/ChatDetailScreen/CallDetailScreen/views/call_detail_screen_view.dart';
 import '../modules/ChatScreen/ChatDetailScreen/bindings/chat_screen_chat_detail_screen_binding.dart';
 import '../modules/ChatScreen/ChatDetailScreen/views/chat_screen_chat_detail_screen_view.dart';
+import '../modules/ChatScreen/SearchUserScreen/bindings/chat_screen_search_user_screen_binding.dart';
+import '../modules/ChatScreen/SearchUserScreen/views/chat_screen_search_user_screen_view.dart';
 import '../modules/ChatScreen/bindings/chat_screen_binding.dart';
 import '../modules/ChatScreen/views/chat_screen_tab.dart';
 import '../modules/ChatScreen/views/chat_screen_view.dart';
@@ -51,6 +53,11 @@ class AppPages {
               binding: CallDetailScreenBinding(),
             ),
           ],
+        ),
+        GetPage(
+          name: _Paths.SEARCH_USER_SCREEN,
+          page: () => const ChatScreenSearchUserScreenView(),
+          binding: ChatScreenSearchUserScreenBinding(),
         ),
       ],
     ),

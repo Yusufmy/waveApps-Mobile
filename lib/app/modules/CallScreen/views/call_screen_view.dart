@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../utils/api.dart';
 import '../../../utils/colors.dart';
 import '../controllers/call_screen_controller.dart';
 
@@ -10,6 +11,7 @@ class CallScreenView extends GetView<CallScreenController> {
   const CallScreenView({super.key});
   @override
   Widget build(BuildContext context) {
+    CallScreenController controller = Get.put(CallScreenController());
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -20,7 +22,7 @@ class CallScreenView extends GetView<CallScreenController> {
             children: [
               Padding(
                 padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
-                child: buildAppBar(),
+                child: buildAppBar(controller),
               ),
               const SizedBox(height: 32),
               Padding(
@@ -39,7 +41,7 @@ class CallScreenView extends GetView<CallScreenController> {
     );
   }
 
-  Widget buildAppBar() {
+  Widget buildAppBar(CallScreenController controller) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -51,14 +53,20 @@ class CallScreenView extends GetView<CallScreenController> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        Container(
-          height: 40,
-          width: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            image: DecorationImage(
-              image: AssetImage("assets/images/profile.jpg"),
-              fit: BoxFit.cover,
+        Obx(
+          () => Container(
+            height: 40,
+            width: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                image: NetworkImage(
+                  controller.userProfile.photo.value.isEmpty
+                      ? "https://ui-avatars.com/api/?name=${controller.userProfile.name.value}&background=random&color=fff"
+                      : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                ),
+                fit: BoxFit.cover,
+              ),
             ),
           ),
         ),

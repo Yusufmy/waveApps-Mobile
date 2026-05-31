@@ -17,6 +17,8 @@ abstract class Routes {
       _Paths.CALL_DETAIL_SCREEN;
   static const CHANGE_PROFILE_SCREEN =
       _Paths.PROFILE_SCREEN + _Paths.CHANGE_PROFILE_SCREEN;
+  static const SEARCH_USER_SCREEN =
+      _Paths.CHAT_SCREEN + _Paths.SEARCH_USER_SCREEN;
 }
 
 abstract class _Paths {
@@ -31,4 +33,5 @@ abstract class _Paths {
   static const WELCOME_SCREEN = '/welcome-screen';
   static const CALL_DETAIL_SCREEN = '/call-detail-screen';
   static const CHANGE_PROFILE_SCREEN = '/change-profile-screen';
+  static const SEARCH_USER_SCREEN = '/search-user-screen';
 }

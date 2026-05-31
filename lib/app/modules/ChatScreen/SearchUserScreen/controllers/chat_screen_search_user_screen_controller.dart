@@ -1,9 +1,7 @@
 import 'package:get/get.dart';
 
-import '../../../service/profile_core_service.dart';
-
-class CallScreenController extends GetxController {
-  final userProfile = Get.find<ProfileCoreService>();
+class ChatScreenSearchUserScreenController extends GetxController {
+  //TODO: Implement ChatScreenSearchUserScreenController
 
   final count = 0.obs;
   @override

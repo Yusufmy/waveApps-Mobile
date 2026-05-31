@@ -24,6 +24,11 @@ Future<void> deleteName() async {
   await prefs.remove('name');
 }
 
+Future<void> deleteUserName() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('user_name');
+}
+
 Future<void> deleteEmail() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('email');
@@ -69,6 +74,7 @@ Future<void> logout(BuildContext context, bool isLogout) async {
       await deleteToken();
       await deleteId();
       await deleteName();
+      await deleteUserName();
       await deleteEmail();
       await deleteBio();
       await deleteIsOnline();

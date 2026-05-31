@@ -136,6 +136,21 @@ class ProfileScreenChangeProfileScreenView
               ),
               const SizedBox(height: 24),
               Text(
+                "Username",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 6),
+              buildInputGlobalWidget(
+                context,
+                hintText: "Enter your username",
+                textEditingController: controller.changeUsernameController,
+              ),
+              const SizedBox(height: 24),
+              Text(
                 "Email Address",
                 style: GoogleFonts.poppins(
                   fontSize: 16,
@@ -149,17 +164,40 @@ class ProfileScreenChangeProfileScreenView
                 hintText: "Enter your email",
                 textEditingController: controller.changeEmailController,
               ),
+              const SizedBox(height: 24),
+              Text(
+                "Bio",
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
+              ),
+              const SizedBox(height: 6),
+              buildInputGlobalWidget(
+                context,
+                hintText: "Enter your bio",
+                textEditingController: controller.changeBioController,
+                maxLines: 4,
+                height: 120,
+              ),
 
               const SizedBox(height: 32),
               Center(
-                child: GestureDetector(
-                  onTap: () {},
-                  child: butildButtonGlobalWidget(
-                    context,
-                    title: "Save",
-                    horizontal: 48,
-                  ),
-                ),
+                child: Obx(() {
+                  return GestureDetector(
+                    onTap: controller.isUpdateProfile.value
+                        ? null
+                        : () async {
+                            await controller.updateProfile(context);
+                          },
+                    child: butildButtonGlobalWidget(
+                      context,
+                      title: "Save",
+                      horizontal: 48,
+                    ),
+                  );
+                }),
               ),
             ],
           ),

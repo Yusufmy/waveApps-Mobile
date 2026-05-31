@@ -10,13 +10,11 @@ class SplashScreenView extends GetView<SplashScreenController> {
   Widget build(BuildContext context) {
     SplashScreenController controller = Get.put(SplashScreenController());
     return Scaffold(
-      body: Obx(()=>Center(
-        child: Image.asset(
-          controller.image.value,
-          width: 230,
-          height: 230,
+      body: Obx(
+        () => Center(
+          child: Image.asset(controller.image.value, width: 180, height: 180),
         ),
-      ),)
+      ),
     );
   }
 }

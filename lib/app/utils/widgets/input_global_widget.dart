@@ -8,10 +8,13 @@ Widget buildInputGlobalWidget(
   String? hintText,
   TextEditingController? textEditingController,
   bool isPassword = false,
+  int maxLines = 1,
+  double height = 48,
 }) {
   final obscureNotifier = ValueNotifier(true);
+
   return Container(
-    height: 48,
+    height: height,
     padding: const EdgeInsets.symmetric(horizontal: 16),
     decoration: BoxDecoration(
       color: Colors.white,
@@ -24,8 +27,9 @@ Widget buildInputGlobalWidget(
         return TextFormField(
           controller: textEditingController,
           obscureText: isPassword ? obscureText : false,
+          maxLines: isPassword ? 1 : maxLines,
+          minLines: 1,
           cursorColor: AppColors.blueColor,
-          cursorHeight: 20,
           style: GoogleFonts.poppins(
             color: Colors.black,
             fontSize: 18,
@@ -44,7 +48,7 @@ Widget buildInputGlobalWidget(
                     onTap: () {
                       obscureNotifier.value = !obscureNotifier.value;
                     },
-                    child: Container(
+                    child: Padding(
                       padding: EdgeInsets.all(8),
                       child: Image.asset(
                         obscureText

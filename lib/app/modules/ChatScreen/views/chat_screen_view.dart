@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
+import 'package:wive_app/app/utils/api.dart';
 import 'package:wive_app/app/utils/colors.dart';
 
 import '../controllers/chat_screen_controller.dart';
@@ -33,14 +34,20 @@ class ChatScreenView extends GetView<ChatScreenController> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    Container(
-                      height: 40,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: AssetImage("assets/images/profile.jpg"),
-                          fit: BoxFit.cover,
+                    Obx(
+                      () => Container(
+                        height: 40,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              controller.userProfile.photo.value.isEmpty
+                                  ? "https://ui-avatars.com/api/?name=${controller.userProfile.name.value}&background=random&color=fff"
+                                  : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                            ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                     ),
@@ -71,11 +78,16 @@ class ChatScreenView extends GetView<ChatScreenController> {
                           color: Colors.black54,
                         ),
                         const SizedBox(width: 24),
-                        Image.asset(
-                          "assets/images/iconAdd.png",
-                          width: 24,
-                          height: 24,
-                          color: Colors.black54,
+                        GestureDetector(
+                          onTap: () {
+                            Get.toNamed(Routes.SEARCH_USER_SCREEN);
+                          },
+                          child: Image.asset(
+                            "assets/images/iconAdd.png",
+                            width: 24,
+                            height: 24,
+                            color: Colors.black54,
+                          ),
                         ),
                       ],
                     ),
@@ -287,6 +299,7 @@ class ChatScreenView extends GetView<ChatScreenController> {
           ],
         ),
         if (title != null) ...[
+          const SizedBox(height: 6),
           Text(
             title,
             style: GoogleFonts.poppins(
