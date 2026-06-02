@@ -51,13 +51,13 @@ class _ChatScreenTabState extends State<ChatScreenTab> {
                 decoration: BoxDecoration(
                   color: AppColors.blueColor,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      offset: Offset(0, 16),
-                      blurRadius: 16,
-                    ),
-                  ],
+                  // boxShadow: [
+                  //   BoxShadow(
+                  //     color: Colors.black12,
+                  //     offset: Offset(0, 16),
+                  //     blurRadius: 16,
+                  //   ),
+                  // ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,

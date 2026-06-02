@@ -6,6 +6,7 @@ import 'package:wive_app/app/common/store.dart';
 import 'package:wive_app/app/utils/api.dart';
 
 class ProfileCoreService extends GetxController {
+  RxBool isLoading = false.obs;
   RxInt id = 0.obs;
   RxString fireBaseUid = ''.obs;
   RxString name = ''.obs;
@@ -19,6 +20,7 @@ class ProfileCoreService extends GetxController {
 
   Future<void> getProfile() async {
     try {
+      isLoading.value = true;
       final res = await Api.getProfile();
       final resJson = jsonDecode(res.body);
       final data = resJson['user'];
@@ -39,6 +41,8 @@ class ProfileCoreService extends GetxController {
       }
     } catch (e) {
       print("Terjadi kesalahan : $e");
+    } finally {
+      isLoading.value = false;
     }
   }
 

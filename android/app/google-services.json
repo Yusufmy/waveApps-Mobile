@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "326813492046",
+    "firebase_url": "https://wafeapps-default-rtdb.firebaseio.com",
+    "project_id": "wafeapps",
+    "storage_bucket": "wafeapps.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326813492046:android:ab027388813c0efb74f41f",
+        "android_client_info": {
+          "package_name": "com.example.wive_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-kH64YBLLsLBVF5aJBP4hgJeafYZBMCo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

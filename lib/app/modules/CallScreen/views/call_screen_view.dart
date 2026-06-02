@@ -59,14 +59,17 @@ class CallScreenView extends GetView<CallScreenController> {
             width: 40,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              image: DecorationImage(
-                image: NetworkImage(
-                  controller.userProfile.photo.value.isEmpty
-                      ? "https://ui-avatars.com/api/?name=${controller.userProfile.name.value}&background=random&color=fff"
-                      : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
-                ),
-                fit: BoxFit.cover,
-              ),
+              color: Colors.grey,
+              image: controller.userProfile.isLoading.value
+                  ? null
+                  : DecorationImage(
+                      image: NetworkImage(
+                        controller.userProfile.photo.value.isEmpty
+                            ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.userProfile.name.value)}&background=E5E7EB&color=374151&size=256"
+                            : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                      ),
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
         ),

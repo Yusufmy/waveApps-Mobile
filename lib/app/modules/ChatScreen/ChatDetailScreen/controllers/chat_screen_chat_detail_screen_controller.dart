@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class ChatScreenChatDetailScreenController extends GetxController {
-  //TODO: Implement ChatScreenChatDetailScreenController
+  RxString name = "Alexander".obs;
 
   final count = 0.obs;
   @override
@@ -35,6 +35,13 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
   @override
   void onClose() {
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Android
+        statusBarBrightness: Brightness.light, // iOS
+      ),
+    );
     super.onClose();
   }
 

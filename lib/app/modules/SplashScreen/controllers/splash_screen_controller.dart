@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 
+import '../../../utils/systemChrome.dart';
+
 class SplashScreenController extends GetxController {
   RxString image = "assets/images/logoWiveApp.png".obs;
 
@@ -33,6 +35,7 @@ class SplashScreenController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    SystemChromeConfig.setLightNavigationBar();
 
     print("INIT SPLASH");
 

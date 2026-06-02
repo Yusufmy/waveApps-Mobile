@@ -12,6 +12,9 @@ class ChatScreenChatDetailScreenView
   const ChatScreenChatDetailScreenView({super.key});
   @override
   Widget build(BuildContext context) {
+    ChatScreenChatDetailScreenController controller = Get.put(
+      ChatScreenChatDetailScreenController(),
+    );
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.white,
@@ -54,12 +57,14 @@ class ChatScreenChatDetailScreenView
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          "Alexander",
-                          style: GoogleFonts.poppins(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
+                        Obx(
+                          () => Text(
+                            "${controller.name.value}",
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         Text(
@@ -116,7 +121,7 @@ class ChatScreenChatDetailScreenView
             bottom: 16,
             left: 16,
             right: 16,
-            child: buildInputMessage(),
+            child: SafeArea(child: buildInputMessage()),
           ),
         ],
       ),

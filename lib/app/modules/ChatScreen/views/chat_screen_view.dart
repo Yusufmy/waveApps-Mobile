@@ -6,6 +6,7 @@ import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/utils/api.dart';
 import 'package:wive_app/app/utils/colors.dart';
 
+import '../../../utils/format.dart';
 import '../controllers/chat_screen_controller.dart';
 
 class ChatScreenView extends GetView<ChatScreenController> {
@@ -40,14 +41,16 @@ class ChatScreenView extends GetView<ChatScreenController> {
                         width: 40,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          image: DecorationImage(
-                            image: NetworkImage(
-                              controller.userProfile.photo.value.isEmpty
-                                  ? "https://ui-avatars.com/api/?name=${controller.userProfile.name.value}&background=random&color=fff"
-                                  : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
-                            ),
-                            fit: BoxFit.cover,
-                          ),
+                          image: controller.userProfile.isLoading.value
+                              ? null
+                              : DecorationImage(
+                                  image: NetworkImage(
+                                    controller.userProfile.photo.value.isEmpty
+                                        ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.userProfile.name.value)}&background=E5E7EB&color=374151&size=256"
+                                        : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                                  ),
+                                  fit: BoxFit.cover,
+                                ),
                         ),
                       ),
                     ),
@@ -144,6 +147,7 @@ class ChatScreenView extends GetView<ChatScreenController> {
                         child: buildProfile(
                           title: "Alex",
                           image: "assets/images/profile.jpg",
+                          isStory: true,
                         ),
                       );
                     }),
@@ -165,59 +169,99 @@ class ChatScreenView extends GetView<ChatScreenController> {
               const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: List.generate(3, (index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      child: GestureDetector(
-                        onTap: () {
-                          Get.toNamed(Routes.CHAT_DETAIL_SCREEN);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(color: Colors.transparent),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              buildProfile(image: "assets/images/profile.jpg"),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Alexander",
-                                    style: GoogleFonts.poppins(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 18,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "Send me the files....",
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 12,
-                                      color: AppColors.textGreeyColor,
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                "12.00",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12,
-                                  color: AppColors.textGreeyColor,
-                                  fontWeight: FontWeight.w400,
+                child: Obx(() {
+                  return Column(
+                    children: List.generate(controller.listRoomChat.length, (
+                      index,
+                    ) {
+                      final data = controller.listRoomChat[index];
+                      final userId = controller.idUserLogin.value;
+
+                      final List participants = List.from(
+                        data['participants'] ?? [],
+                      );
+
+                      final otherUser = participants.firstWhere((u) {
+                        if (u == null) return false;
+
+                        final id = u['user_id'] ?? u['id'];
+
+                        return id.toString() != userId.toString();
+                      }, orElse: () => null);
+
+                      final isMember = participants.any((user) {
+                        if (user == null) return false;
+
+                        final id = user['user_id'] ?? user['id'];
+
+                        return id.toString() == userId.toString();
+                      });
+
+                      if (!isMember || otherUser == null) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        child: GestureDetector(
+                          onTap: () {
+                            Get.toNamed(Routes.CHAT_DETAIL_SCREEN);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.transparent,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                buildProfile(
+                                  image: "${otherUser?['photo']}",
+                                  title: "${otherUser?['name']}",
+                                  isStory: false,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "${otherUser?['name']}",
+                                        style: GoogleFonts.poppins(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 18,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        "${data['last_message'] ?? ""}",
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 12,
+                                          color: AppColors.textGreeyColor,
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  formatHour(data['last_message_at']),
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: AppColors.textGreeyColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }),
-                ),
+                      );
+                    }),
+                  );
+                }),
               ),
             ],
           ),
@@ -261,7 +305,7 @@ class ChatScreenView extends GetView<ChatScreenController> {
     );
   }
 
-  Widget buildProfile({String? title, String? image}) {
+  Widget buildProfile({String? title, String? image, bool? isStory}) {
     return Column(
       children: [
         Stack(
@@ -291,17 +335,23 @@ class ChatScreenView extends GetView<ChatScreenController> {
                 color: Colors.white,
                 shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: AssetImage("$image"),
+                  image: isStory == true
+                      ? AssetImage("assets/images/profile.jpg")
+                      : NetworkImage(
+                          image == null || image.isEmpty || image == "null"
+                              ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(title ?? "")}&background=E5E7EB&color=374151&size=256"
+                              : "${Api.publicUrl}storage/$image",
+                        ),
                   fit: BoxFit.cover,
                 ),
               ),
             ),
           ],
         ),
-        if (title != null) ...[
+        if (isStory == true) ...[
           const SizedBox(height: 6),
           Text(
-            title,
+            "$title",
             style: GoogleFonts.poppins(
               fontSize: 12,
               color: AppColors.textGreeyColor,

@@ -5,11 +5,18 @@ Future<void> storeToken(String token) async {
   await prefs.setString('token', token);
 }
 
+Future<void> storeTokenFCM(String tokenFCM) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString('tokenFCM', tokenFCM);
+}
+
 Future<void> storeFirebaseUid(String firebaseUid) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('firebase_uid', firebaseUid);
 }
+
 Future<void> storeId(int id) async {
+  print("ID INI BERHASIL DISIMPAN : $id");
   final prefs = await SharedPreferences.getInstance();
   await prefs.setInt('id', id);
 }
@@ -28,7 +35,6 @@ Future<void> storeEmail(String email) async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('email', email);
 }
-
 
 Future<void> storePhotoProfile(String photoProfile) async {
   final prefs = await SharedPreferences.getInstance();

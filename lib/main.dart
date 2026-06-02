@@ -1,13 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:get/get.dart';
+import 'package:wive_app/app/service/firebase_core_service.dart';
 
 import 'app/routes/app_pages.dart';
 import 'app/service/profile_core_service.dart';
+import 'app/utils/colors.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp();
+  Get.put(ProfileCoreService());
+
+  final firebaseCore = Get.put(FirebaseCoreService());
+
+  await firebaseCore.initFCM();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -16,9 +26,16 @@ void main() {
       statusBarBrightness: Brightness.light, // iOS
     ),
   );
-  Get.put(ProfileCoreService());
+
   runApp(
     GetMaterialApp(
+      theme: ThemeData(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: AppColors.blueColor,
+          selectionColor: AppColors.blueColor.withOpacity(0.3),
+          selectionHandleColor: AppColors.blueColor,
+        ),
+      ),
       debugShowCheckedModeBanner: false,
       title: "Application",
       initialRoute: AppPages.INITIAL,

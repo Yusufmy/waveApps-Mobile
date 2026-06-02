@@ -5,6 +5,11 @@ Future<String?> getToken() async {
   return prefs.getString('token');
 }
 
+Future<String?> getTokenFCM() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('tokenFCM');
+}
+
 Future<String?> getFirebaseUid() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('firebase_uid');

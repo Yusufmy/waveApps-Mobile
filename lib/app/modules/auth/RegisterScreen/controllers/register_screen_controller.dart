@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/utils/api.dart';
 
+import '../../../../utils/systemChrome.dart';
 import '../../../../utils/widgets/alert_global_widget.dart';
 
 class RegisterScreenController extends GetxController {
@@ -57,6 +58,7 @@ class RegisterScreenController extends GetxController {
   final count = 0.obs;
   @override
   void onInit() {
+    SystemChromeConfig.setLightNavigationBar();
     super.onInit();
   }
 
