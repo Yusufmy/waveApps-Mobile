@@ -200,11 +200,33 @@ class ChatScreenView extends GetView<ChatScreenController> {
                       if (!isMember || otherUser == null) {
                         return const SizedBox.shrink();
                       }
+
+                      final myParticipant = participants.firstWhere((u) {
+                        if (u == null) return false;
+
+                        final id = u['user_id'] ?? u['id'];
+
+                        return id.toString() == userId.toString();
+                      }, orElse: () => null);
+
+                      final unreadCount = myParticipant?['unread_count'] ?? 0;
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 24),
                         child: GestureDetector(
                           onTap: () {
-                            Get.toNamed(Routes.CHAT_DETAIL_SCREEN);
+                            print("DATA ID ROOM : ${data['id']}");
+                            controller.readMessage("${data['id']}");
+                            Get.toNamed(
+                              Routes.CHAT_DETAIL_SCREEN,
+                              arguments: {
+                                "conversationId": "${data['id']}",
+                                "name": "${otherUser?['name']}",
+                                "photo": "${otherUser?['photo']}",
+                                "idUserRechiver": "${otherUser?['user_id']}",
+                              },
+                            )?.then((_) {
+                              controller.readMessage("${data['id']}");
+                            });
                           },
                           child: Container(
                             decoration: BoxDecoration(
@@ -246,13 +268,34 @@ class ChatScreenView extends GetView<ChatScreenController> {
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                Text(
-                                  formatHour(data['last_message_at']),
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12,
-                                    color: AppColors.textGreeyColor,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                                Column(
+                                  children: [
+                                    Text(
+                                      formatHour(data['last_message_at']),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12,
+                                        color: AppColors.textGreeyColor,
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                    if (unreadCount != 0) ...[
+                                      Container(
+                                        padding: EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.red,
+                                        ),
+                                        child: Text(
+                                          "$unreadCount",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),

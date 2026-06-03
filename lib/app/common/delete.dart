@@ -1,9 +1,12 @@
 import 'dart:convert';
 
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/utils/api.dart';
 
@@ -64,6 +67,7 @@ Future<void> logout(BuildContext context, bool isLogout) async {
     isLogout = true;
     final res = await Api.logout();
     final resJson = jsonDecode(res.body);
+    final userId = await getId();
     print(res.body);
     if (res.statusCode == 200 || res.statusCode == 201) {
       showAlert(
@@ -71,6 +75,11 @@ Future<void> logout(BuildContext context, bool isLogout) async {
         text: resJson['message'] ?? "Berhasil Logout",
         isSuccess: true,
       );
+
+      await FirebaseDatabase.instance.ref("presence/$userId").update({
+        "online": false,
+        "last_seen": ServerValue.timestamp,
+      });
       await deleteToken();
       await deleteId();
       await deleteName();
@@ -79,6 +88,7 @@ Future<void> logout(BuildContext context, bool isLogout) async {
       await deleteBio();
       await deleteIsOnline();
       await deleteLastSeen();
+
       Get.offAllNamed(Routes.LOGIN_SCREEN);
     } else {
       showAlert(

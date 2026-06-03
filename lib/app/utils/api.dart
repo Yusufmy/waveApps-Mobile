@@ -19,16 +19,16 @@ class Api {
   ///USER (CHAT)
   static const String conversationsUrl = '${baseUrl}conversations';
   static const String messagesUrl = '${baseUrl}messages';
+  static const String readMessagesUrl = '${baseUrl}read';
 
   ///USER (STORY)
-  static const String storiesUrl = '${baseUrl}/stories';
+  static const String storiesUrl = '${baseUrl}stories';
 
   ///USER (CALL)
   static const String callUrl = '${baseUrl}calls/start';
 
   ///TOKEN FCM
   static const String fcmUrl = '${baseUrl}save-fcm-token';
-  
 
   static Future<http.Response> login(var body) async {
     final request = http.post(
@@ -52,7 +52,7 @@ class Api {
       Uri.parse(fcmUrl),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token'
+        'Authorization': 'Bearer $token',
       },
       body: jsonEncode(body),
     );
@@ -183,6 +183,38 @@ class Api {
       body: jsonEncode(body),
     );
 
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> sendMessage(var body) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse(messagesUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> readMessage(var conversationId) async {
+    final token = await getToken();
+    final finalConversationUrl = conversationId ?? "";
+
+    final request = http.post(
+      Uri.parse("$readMessagesUrl/$finalConversationUrl"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
     final response = await request;
 
     return response;

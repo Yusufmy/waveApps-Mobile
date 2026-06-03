@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/utils/colors.dart';
 
+import '../../../../utils/api.dart';
+import '../../../../utils/format.dart';
 import '../controllers/chat_screen_chat_detail_screen_controller.dart';
 
 class ChatScreenChatDetailScreenView
@@ -41,17 +43,24 @@ class ChatScreenChatDetailScreenView
                       ),
                     ),
                     const SizedBox(width: 16),
-                    Container(
-                      height: 32,
-                      width: 32,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        image: DecorationImage(
-                          image: AssetImage("assets/images/profile.jpg"),
-                          fit: BoxFit.cover,
+                    Obx(() {
+                      return Container(
+                        height: 40,
+                        width: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              controller.photo.value.isEmpty ||
+                                      controller.photo.value == "null"
+                                  ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.name.value)}&background=E5E7EB&color=374151&size=256"
+                                  : "${Api.publicUrl}storage/${controller.photo.value}",
+                            ),
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    }),
                     const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +68,7 @@ class ChatScreenChatDetailScreenView
                       children: [
                         Obx(
                           () => Text(
-                            "${controller.name.value}",
+                            controller.name.value,
                             style: GoogleFonts.poppins(
                               fontSize: 20,
                               fontWeight: FontWeight.w500,
@@ -67,12 +76,14 @@ class ChatScreenChatDetailScreenView
                             ),
                           ),
                         ),
-                        Text(
-                          "Online",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white,
+                        Obx(
+                          () => Text(
+                            controller.statusRechiver.value,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
@@ -102,91 +113,191 @@ class ChatScreenChatDetailScreenView
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                "Sunday, 22 May 2026",
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: AppColors.textGreeyColor,
-                ),
+              // const SizedBox(height: 16),
+              Expanded(
+                child: Obx(() {
+                  final keys = controller.groupedMessages.keys.toList();
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(top: 16, bottom: 150),
+                    itemCount: keys.length,
+                    itemBuilder: (context, index) {
+                      final dateKey = keys[index];
+                      final messages = controller.groupedMessages[dateKey]!;
+
+                      final dateText = formatChatDate(
+                        messages.first['created_at'],
+                      );
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 📅 DATE HEADER
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                dateText,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // 💬 MESSAGES (FLAT, NO LISTVIEW)
+                          ...messages.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final msg = entry.value;
+
+                            final isMe =
+                                msg['sender_id'].toString() ==
+                                controller.idUserLogin.value.toString();
+
+                            bool isLastInGroup = false;
+
+                            if (i == messages.length - 1) {
+                              isLastInGroup = true;
+                            } else {
+                              final current = msg['created_at'] ?? 0;
+                              final next = messages[i + 1]['created_at'] ?? 0;
+
+                              if (!isSameMinuteGroup(current, next)) {
+                                isLastInGroup = true;
+                              }
+                            }
+
+                            return buildBubbleChat(
+                              isMe: isMe,
+                              message: msg['message'] ?? "",
+                              time: msg['created_at'] ?? 0,
+                              showAmber: isLastInGroup && !isMe,
+                            );
+                          }).toList(),
+                        ],
+                      );
+                    },
+                  );
+                }),
               ),
-              const SizedBox(height: 16),
-              buildBubbleChat(isMe: true, message: "Hello, Good Morning"),
-              const SizedBox(height: 16),
-              buildBubbleChat(isMe: false, message: "Hello, Good Morning too"),
             ],
           ),
           Positioned(
             bottom: 16,
             left: 16,
             right: 16,
-            child: SafeArea(child: buildInputMessage()),
+            child: SafeArea(
+              child: Obx(
+                () =>
+                    buildInputMessage(context, controller.conversationId.value),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget buildBubbleChat({bool isMe = false, required String message}) {
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: IntrinsicWidth(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          margin: EdgeInsets.only(
-            left: isMe ? 160 : 16,
-            right: isMe ? 16 : 160,
-          ),
-          decoration: BoxDecoration(
-            color: isMe ? AppColors.blueColor : Colors.grey.shade300,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(16),
-              topRight: const Radius.circular(16),
-              bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
-              bottomRight: isMe ? Radius.zero : const Radius.circular(16),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: isMe
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              Text(
-                message,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: isMe ? Colors.white : Colors.black54,
+  Widget buildBubbleChat({
+    bool isMe = false,
+    required String message,
+    required int time,
+    bool showAmber = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 4,
+      ), // 🔥 KEY FIX
+      child: Align(
+        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              margin: EdgeInsets.only(left: isMe ? 0 : 14),
+              constraints: BoxConstraints(
+                maxWidth: Get.width * 0.7, // 🔥 WA STYLE WIDTH
+              ),
+              decoration: BoxDecoration(
+                color: isMe ? AppColors.blueColor : Colors.grey.shade200,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
+                  bottomRight: isMe ? Radius.zero : const Radius.circular(16),
                 ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    "14:00",
+                    message,
                     style: GoogleFonts.poppins(
-                      color: isMe ? Colors.white : Colors.black54,
-                      fontWeight: FontWeight.w500,
                       fontSize: 14,
+                      color: isMe ? Colors.white : Colors.black87,
                     ),
                   ),
-                  if (isMe == true) ...[
-                    const SizedBox(width: 4),
-                    Icon(Icons.check, color: Colors.white, size: 14),
-                  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        formatChatTime(time),
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: isMe ? Colors.white70 : Colors.black45,
+                        ),
+                      ),
+                      if (isMe == true) ...[
+                        const SizedBox(width: 4),
+                        Image.asset(
+                          "assets/images/doubleCheck.png",
+                          width: 14,
+                          height: 14,
+                          color: Colors.blue,
+                        ),
+                      ],
+                    ],
+                  ),
                 ],
               ),
+            ),
+            if (!isMe && showAmber) ...[
+              const SizedBox(height: 4), // 🔥 kecilin jarak
+              Container(
+                height: 20,
+                width: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: NetworkImage(
+                      controller.photo.value.isEmpty ||
+                              controller.photo.value == "null"
+                          ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.name.value)}&background=E5E7EB&color=374151&size=256"
+                          : "${Api.publicUrl}storage/${controller.photo.value}",
+                    ),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4), // 🔥 kecilin jarak
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget buildInputMessage() {
+  Widget buildInputMessage(BuildContext context, String conversionId) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -213,7 +324,7 @@ class ChatScreenChatDetailScreenView
 
           Expanded(
             child: TextFormField(
-              // controller: textEditingController,
+              controller: controller.messageController,
               cursorColor: AppColors.blueColor,
               cursorHeight: 20,
               style: GoogleFonts.poppins(
@@ -247,17 +358,22 @@ class ChatScreenChatDetailScreenView
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.blueFieldColor,
-            ),
-            child: Center(
-              child: Image.asset(
-                "assets/images/send.png",
-                width: 20,
-                height: 20,
+          GestureDetector(
+            onTap: () {
+              controller.sendMessage(context, conversionId);
+            },
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.blueFieldColor,
+              ),
+              child: Center(
+                child: Image.asset(
+                  "assets/images/send.png",
+                  width: 20,
+                  height: 20,
+                ),
               ),
             ),
           ),

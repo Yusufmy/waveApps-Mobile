@@ -133,7 +133,7 @@ class ChatScreenController extends GetxController {
 
           /// jika bukan creator DAN belum ada pesan
           /// jangan tampilkan room
-          /// 
+          ///
           if (!isCreator && !hasMessage) {
             print(
               "ROOM $roomKey HIDDEN "
@@ -199,6 +199,20 @@ class ChatScreenController extends GetxController {
     listRoomChat.insert(0, updated);
 
     listRoomChat.refresh();
+  }
+
+  void readMessage(var conversationId) async {
+    try {
+      final res = await Api.readMessage(conversationId);
+
+      if (res.statusCode == 200) {
+        print("Reponse Berhisil read : ${res.body}");
+      } else {
+        print("Reponse Gagal read : ${res.body}");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    }
   }
 
   @override

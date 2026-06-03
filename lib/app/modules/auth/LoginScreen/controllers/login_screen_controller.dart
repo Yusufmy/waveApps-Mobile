@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
@@ -69,6 +70,10 @@ class LoginScreenController extends GetxController {
         );
         await storeId(data["id"] ?? "");
         await storeFirebaseUid(data["firebase_uid"] ?? "");
+        await FirebaseDatabase.instance.ref("presence/${data["id"]}").update({
+          "online": true,
+          "last_seen": ServerValue.timestamp,
+        });
         await storeName(data["name"] ?? "");
         await storeEmail(data["email"] ?? "");
         await storePhotoProfile(data["photo"] ?? "");
