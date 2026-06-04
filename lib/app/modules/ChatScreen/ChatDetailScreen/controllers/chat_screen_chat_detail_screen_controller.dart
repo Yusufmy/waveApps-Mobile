@@ -28,8 +28,28 @@ class ChatScreenChatDetailScreenController extends GetxController {
       <String, List<Map<String, dynamic>>>{}.obs;
   StreamSubscription? messageSub;
 
+  //MESSAGE LOKAL
+  RxList<Map<String, dynamic>> localMessages = <Map<String, dynamic>>[].obs;
+
   //STATUS RECHIVER
   RxString statusRechiver = "".obs;
+
+  //SCROLL
+  ScrollController scrollController = ScrollController();
+
+  void scrollLastMessage() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients) return;
+
+      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (!scrollController.hasClients) return;
+
+        scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      });
+    });
+  }
 
   void updaDate() async {
     idUserLogin.value = await getId() ?? 0;
@@ -60,38 +80,83 @@ class ChatScreenChatDetailScreenController extends GetxController {
     });
   }
 
-  void updateMessage() async {
+  void updateMessage() {
     messageSub?.cancel();
 
     messageSub = db.child("messages/${conversationId.value}").onValue.listen((
       event,
-    ) {
+    ) async {
       final data = event.snapshot.value;
 
-      if (data == null) {
-        messages.clear();
-        groupedMessages.clear();
-        return;
+      final List<Map<String, dynamic>> firebaseMessages = [];
+
+      if (data != null) {
+        final Map raw = data as Map;
+
+        raw.forEach((key, value) {
+          firebaseMessages.add({
+            "key": key,
+            ...Map<String, dynamic>.from(value),
+          });
+        });
+
+        firebaseMessages.sort(
+          (a, b) => (a["created_at"] ?? 0).compareTo(b["created_at"] ?? 0),
+        );
       }
 
-      final Map raw = data as Map;
+      // ==========================
+      // HAPUS TEMP MESSAGE
+      // YANG SUDAH MASUK FIREBASE
+      // ==========================
 
-      final List<Map<String, dynamic>> loaded = [];
+      for (final firebaseMsg in firebaseMessages) {
+        localMessages.removeWhere(
+          (local) =>
+              local["message"] == firebaseMsg["message"] &&
+              local["sender_id"].toString() ==
+                  firebaseMsg["sender_id"].toString(),
+        );
+      }
 
-      raw.forEach((key, value) {
-        loaded.add({"key": key, ...Map<String, dynamic>.from(value)});
-      });
+      // ==========================
+      // GABUNGKAN
+      // ==========================
 
-      loaded.sort(
+      final mergedMessages = [...firebaseMessages, ...localMessages];
+
+      mergedMessages.sort(
         (a, b) => (a["created_at"] ?? 0).compareTo(b["created_at"] ?? 0),
       );
 
-      messages.value = loaded;
+      messages.value = mergedMessages;
 
-      // 🔥 IMPORTANT: update RxMap properly
+      // ==========================
+      // DELIVERED
+      // ==========================
+
+      final List<int> messageIds = [];
+
+      for (final msg in firebaseMessages) {
+        final isMe =
+            msg['sender_id'].toString() == idUserLogin.value.toString();
+
+        if (!isMe && msg['status'] == 'sent') {
+          messageIds.add(int.parse(msg['message_id'].toString()));
+        }
+      }
+
+      if (messageIds.isNotEmpty) {
+        deliveredMessage(messageIds);
+      }
+
+      // ==========================
+      // GROUP BY DATE
+      // ==========================
+
       groupedMessages.clear();
 
-      for (var msg in loaded) {
+      for (final msg in mergedMessages) {
         final ts = msg["created_at"] ?? 0;
 
         final date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
@@ -99,35 +164,107 @@ class ChatScreenChatDetailScreenController extends GetxController {
         final key = "${date.year}-${date.month}-${date.day}";
 
         groupedMessages.putIfAbsent(key, () => []);
+
         groupedMessages[key]!.add(msg);
       }
 
-      groupedMessages.refresh(); // 🔥 IMPORTANT
+      groupedMessages.refresh();
+
+      scrollLastMessage();
     });
   }
 
-  void sendMessage(BuildContext context, String conversionId) async {
+  Future<void> deliveredMessage(List<int> messageIds) async {
     try {
-      final text = messageController.text.trim();
+      if (messageIds.isEmpty) return;
 
-      messageController.clear();
+      final body = {"message_ids": messageIds};
 
-      final body = {"conversation_id": conversionId, "message": text};
+      print("DELIVERED => $body");
 
-      print("Request Body : $body");
+      final res = await Api.deliveredMessage(body);
+
+      print("DELIVERED RESPONSE => ${res.body}");
+    } catch (e) {
+      print("Terjadi kesalahan delivered : $e");
+    }
+  }
+
+  void sendMessage(BuildContext context, String conversationId) async {
+    final text = messageController.text.trim();
+
+    if (text.isEmpty) return;
+
+    messageController.clear();
+
+    final tempId = "temp_${DateTime.now().millisecondsSinceEpoch}";
+
+    final tempMessage = {
+      "temp_id": tempId,
+      "message": text,
+      "sender_id": idUserLogin.value,
+      "created_at": DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      "status": "sending",
+      "is_local": true,
+    };
+
+    // ==========================
+    // TAMBAH KE LIST LOKAL
+    // ==========================
+
+    localMessages.add(tempMessage);
+
+    messages.add(tempMessage);
+
+    rebuildGroupedMessages();
+
+    scrollLastMessage();
+
+    try {
+      final body = {"conversation_id": conversationId, "message": text};
 
       final res = await Api.sendMessage(body);
 
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        print("Berhasil di kirim : ${res.body}");
-      } else {
-        print("Gagal di kirim : ${res.body}");
+      if (res.statusCode != 200 && res.statusCode != 201) {
+        final index = localMessages.indexWhere((e) => e["temp_id"] == tempId);
+
+        if (index != -1) {
+          localMessages[index]["status"] = "failed";
+
+          localMessages.refresh();
+
+          rebuildGroupedMessages();
+        }
       }
     } catch (e) {
-      showAlert(context, text: "Terjadi kesalahan", isSuccess: false);
+      final index = localMessages.indexWhere((e) => e["temp_id"] == tempId);
 
-      print("Terjadi kesalahan : $e");
+      if (index != -1) {
+        localMessages[index]["status"] = "failed";
+
+        localMessages.refresh();
+
+        rebuildGroupedMessages();
+      }
     }
+  }
+
+  void rebuildGroupedMessages() {
+    groupedMessages.clear();
+
+    for (final msg in messages) {
+      final ts = msg["created_at"] ?? 0;
+
+      final date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+
+      final key = "${date.year}-${date.month}-${date.day}";
+
+      groupedMessages.putIfAbsent(key, () => []);
+
+      groupedMessages[key]!.add(msg);
+    }
+
+    groupedMessages.refresh();
   }
 
   @override

@@ -46,6 +46,7 @@ class AppPages {
           name: _Paths.CHAT_DETAIL_SCREEN,
           page: () => const ChatScreenChatDetailScreenView(),
           binding: ChatScreenChatDetailScreenBinding(),
+          transition: Transition.downToUp,
           children: [
             GetPage(
               name: _Paths.CALL_DETAIL_SCREEN,

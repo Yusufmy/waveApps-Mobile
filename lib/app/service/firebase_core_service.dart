@@ -42,6 +42,8 @@ class FirebaseCoreService extends GetxService with WidgetsBindingObserver {
   Future<void> initPresence() async {
     final userId = await getId();
 
+    print("🔥 PRESENCE USER ID = $userId");
+
     if (userId == null) return;
 
     _presenceRef = _database.ref("presence/$userId");

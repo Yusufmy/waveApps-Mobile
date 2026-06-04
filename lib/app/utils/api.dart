@@ -20,6 +20,7 @@ class Api {
   static const String conversationsUrl = '${baseUrl}conversations';
   static const String messagesUrl = '${baseUrl}messages';
   static const String readMessagesUrl = '${baseUrl}read';
+  static const String deliveredMessagesUrl = '${baseUrl}messages-delivered';
 
   ///USER (STORY)
   static const String storiesUrl = '${baseUrl}stories';
@@ -210,6 +211,21 @@ class Api {
 
     final request = http.post(
       Uri.parse("$readMessagesUrl/$finalConversationUrl"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> deliveredMessage(var body) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse(deliveredMessagesUrl),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

@@ -7,6 +7,7 @@ import 'package:wive_app/app/utils/colors.dart';
 
 import '../../../../utils/api.dart';
 import '../../../../utils/format.dart';
+import '../../../../utils/runningText.dart';
 import '../controllers/chat_screen_chat_detail_screen_controller.dart';
 
 class ChatScreenChatDetailScreenView
@@ -27,7 +28,9 @@ class ChatScreenChatDetailScreenView
               Container(
                 height: 100,
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 24),
-                decoration: BoxDecoration(color: AppColors.blueColor),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 2, 38, 91),
+                ),
                 child: Row(
                   children: [
                     GestureDetector(
@@ -62,33 +65,30 @@ class ChatScreenChatDetailScreenView
                       );
                     }),
                     const SizedBox(width: 16),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Obx(
-                          () => Text(
-                            controller.name.value,
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Obx(
+                            () => Text(
+                              controller.name.value,
+                              style: GoogleFonts.poppins(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                        Obx(
-                          () => Text(
-                            controller.statusRechiver.value,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
+                          Obx(
+                            () => RunningText(
+                              text: controller.statusRechiver.value,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () => Get.toNamed(Routes.CALL_DETAIL_SCREEN),
                       child: SizedBox(
@@ -119,6 +119,7 @@ class ChatScreenChatDetailScreenView
                   final keys = controller.groupedMessages.keys.toList();
 
                   return ListView.builder(
+                    controller: controller.scrollController,
                     padding: const EdgeInsets.only(top: 16, bottom: 150),
                     itemCount: keys.length,
                     itemBuilder: (context, index) {
@@ -176,6 +177,7 @@ class ChatScreenChatDetailScreenView
                               isMe: isMe,
                               message: msg['message'] ?? "",
                               time: msg['created_at'] ?? 0,
+                              status: msg['status'] ?? 0,
                               showAmber: isLastInGroup && !isMe,
                             );
                           }).toList(),
@@ -203,10 +205,30 @@ class ChatScreenChatDetailScreenView
     );
   }
 
+  Widget buildStatus(String status) {
+    switch (status) {
+      case "sending":
+        return const Icon(Icons.access_time, size: 14, color: Colors.white70);
+
+      case "sent":
+        return const Icon(Icons.check, size: 14, color: Colors.white70);
+
+      case "delivered":
+        return const Icon(Icons.done_all, size: 14, color: Colors.white70);
+
+      case "read":
+        return const Icon(Icons.done_all, size: 14, color: Colors.blue);
+
+      default:
+        return const SizedBox();
+    }
+  }
+
   Widget buildBubbleChat({
     bool isMe = false,
     required String message,
     required int time,
+    required String status,
     bool showAmber = false,
   }) {
     return Padding(
@@ -226,7 +248,9 @@ class ChatScreenChatDetailScreenView
                 maxWidth: Get.width * 0.7, // 🔥 WA STYLE WIDTH
               ),
               decoration: BoxDecoration(
-                color: isMe ? AppColors.blueColor : Colors.grey.shade200,
+                color: isMe
+                    ? const Color.fromARGB(255, 2, 38, 91)
+                    : Colors.grey.shade200,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -259,12 +283,13 @@ class ChatScreenChatDetailScreenView
                       ),
                       if (isMe == true) ...[
                         const SizedBox(width: 4),
-                        Image.asset(
-                          "assets/images/doubleCheck.png",
-                          width: 14,
-                          height: 14,
-                          color: Colors.blue,
-                        ),
+                        // Image.asset(
+                        //   "assets/images/doubleCheck.png",
+                        //   width: 14,
+                        //   height: 14,
+                        //   color: Colors.blue,
+                        // ),
+                        buildStatus(status),
                       ],
                     ],
                   ),
