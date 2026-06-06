@@ -7,6 +7,7 @@ import 'package:wive_app/app/utils/colors.dart';
 
 import '../../../../utils/api.dart';
 import '../../../../utils/format.dart';
+import '../../../../utils/indocatorType.dart';
 import '../../../../utils/runningText.dart';
 import '../controllers/chat_screen_chat_detail_screen_controller.dart';
 
@@ -81,8 +82,14 @@ class ChatScreenChatDetailScreenView
                             ),
                           ),
                           Obx(
-                            () => RunningText(
-                              text: controller.statusRechiver.value,
+                            () => Text(
+                              controller.isTyping.value
+                                  ? "Typing..."
+                                  : controller.statusRechiver.value,
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -181,6 +188,16 @@ class ChatScreenChatDetailScreenView
                               showAmber: isLastInGroup && !isMe,
                             );
                           }).toList(),
+                          Obx(() {
+                            if (!controller.isTyping.value) {
+                              return const SizedBox();
+                            }
+
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: TypingIndicator(),
+                            );
+                          }),
                         ],
                       );
                     },

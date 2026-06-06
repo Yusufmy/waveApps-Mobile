@@ -11,8 +11,12 @@ import '../../../../utils/format.dart';
 import '../../../../utils/widgets/alert_global_widget.dart';
 
 class ChatScreenChatDetailScreenController extends GetxController {
+  ///MESSAGE CHAT
   TextEditingController messageController = TextEditingController();
   RxString messageText = "".obs;
+  RxBool isTyping = false.obs;
+  Timer? typingTimer;
+  StreamSubscription? typingSub;
 
   RxString name = "".obs; //NAME RECHIVER
   RxString photo = "".obs; //PHOTO RECHIVER
@@ -53,6 +57,34 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
   void updaDate() async {
     idUserLogin.value = await getId() ?? 0;
+  }
+
+  Future<void> updateTyping(bool typing) async {
+    try {
+      await db.child("typing/${conversationId.value}/${idUserLogin.value}").set(
+        {"typing": typing, "updated_at": ServerValue.timestamp},
+      );
+    } catch (e) {
+      print("Typing Error : $e");
+    }
+  }
+
+  void listenTyping() {
+    typingSub?.cancel();
+
+    typingSub = db
+        .child("typing/${conversationId.value}/${idUserRechiver.value}")
+        .onValue
+        .listen((event) {
+          if (!event.snapshot.exists) {
+            isTyping.value = false;
+            return;
+          }
+
+          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+          isTyping.value = data["typing"] ?? false;
+        });
   }
 
   void updateStatusRechiver() async {
@@ -193,6 +225,8 @@ class ChatScreenChatDetailScreenController extends GetxController {
   void sendMessage(BuildContext context, String conversationId) async {
     final text = messageController.text.trim();
 
+    await updateTyping(false);
+
     if (text.isEmpty) return;
 
     messageController.clear();
@@ -293,9 +327,18 @@ class ChatScreenChatDetailScreenController extends GetxController {
     updaDate();
     updateStatusRechiver();
     updateMessage();
+    listenTyping();
 
     messageController.addListener(() {
       messageText.value = messageController.text;
+
+      updateTyping(true);
+
+      typingTimer?.cancel();
+
+      typingTimer = Timer(const Duration(seconds: 2), () {
+        updateTyping(false);
+      });
     });
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);

@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:wive_app/app/common/get.dart';
 
 class Api {
-  static const String baseUrl = 'http://192.168.0.106:8080/api/';
-  static const String publicUrl = 'http://192.168.0.106:8080/';
+  static const String baseUrl = 'http://192.168.0.104:8080/api/';
+  static const String publicUrl = 'http://192.168.0.104:8080/';
 
   ///AUTH
   static const String loginUrl = '${baseUrl}login';

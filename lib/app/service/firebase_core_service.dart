@@ -3,6 +3,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
+import 'package:wive_app/app/service/notification_service.dart';
 
 import '../common/store.dart';
 
@@ -19,6 +20,10 @@ class FirebaseCoreService extends GetxService with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
 
     await _messaging.requestPermission();
+
+    await NotificationService.init();
+
+    setupFCMListener();
 
     final token = await _messaging.getToken();
 
@@ -53,6 +58,8 @@ class FirebaseCoreService extends GetxService with WidgetsBindingObserver {
     connectedRef.onValue.listen((event) async {
       final connected = event.snapshot.value as bool? ?? false;
 
+      print("CONNECTED = $connected");
+
       if (!connected) return;
 
       await _presenceRef!.onDisconnect().update({
@@ -60,10 +67,26 @@ class FirebaseCoreService extends GetxService with WidgetsBindingObserver {
         "last_seen": ServerValue.timestamp,
       });
 
+      print("ON DISCONNECT REGISTERED");
+
       await _presenceRef!.update({
         "online": true,
         "last_seen": ServerValue.timestamp,
       });
+    });
+  }
+
+  void setupFCMListener() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("MESSAGE RECEIVED");
+      print(message.data);
+      print(message.notification?.title);
+      print(message.notification?.body);
+
+      NotificationService.show(
+        title: message.notification?.title ?? "Pesan Baru",
+        body: message.notification?.body ?? "",
+      );
     });
   }
 
