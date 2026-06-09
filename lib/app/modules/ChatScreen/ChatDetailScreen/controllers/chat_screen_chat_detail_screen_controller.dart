@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
+import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/utils/api.dart';
 
+import '../../../../utils/call_center.dart';
 import '../../../../utils/format.dart';
 import '../../../../utils/widgets/alert_global_widget.dart';
 
@@ -40,6 +43,10 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
   //SCROLL
   ScrollController scrollController = ScrollController();
+
+  //VARIABEL CALL
+  RxBool isStartCall = false.obs;
+  StreamSubscription? callStatusSub;
 
   void scrollLastMessage() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -299,6 +306,76 @@ class ChatScreenChatDetailScreenController extends GetxController {
     }
 
     groupedMessages.refresh();
+  }
+
+  void startCall({
+    String? conversationID,
+    String? receiverID,
+    String? type,
+  }) async {
+    if (isStartCall.value) return;
+    try {
+      isStartCall.value = true;
+
+      final body = {
+        "conversation_id": conversationID,
+        "receiver_id": receiverID,
+        "type": type,
+      };
+
+      print(body);
+
+      final res = await Api.startCallUrl(body);
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final response = jsonDecode(res.body);
+
+        final data = response["data"];
+        listenCallStatus(data["id"].toString());
+
+        Get.toNamed(
+          Routes.CALL_DETAIL_SCREEN,
+          arguments: {...data, "isCaller": true},
+        );
+        print("BERHSAIL $type CALL");
+        print("RESPONSE BERHASIL BODY CALL : ${res.body}");
+      } else {
+        print("RESPONSE GAGAL BODY CALL : ${res.body}");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    } finally {
+      isStartCall.value = false;
+    }
+  }
+
+  void listenCallStatus(String callId) {
+    callStatusSub?.cancel();
+
+    callStatusSub = FirebaseDatabase.instance
+        .ref("calls")
+        .child(callId)
+        .onValue
+        .listen((event) async {
+          if (event.snapshot.value == null) return;
+
+          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+          print("CALL STATUS => ${data["status"]}");
+
+          if (data["status"] == "accepted") {
+            final userId = await getId();
+            final userName = await getName();
+
+            Get.off(
+              () => VoiceCallPage(
+                roomID: data["room_id"],
+                userID: "$userId",
+                userName: "$userName",
+              ),
+            );
+          }
+        });
   }
 
   @override

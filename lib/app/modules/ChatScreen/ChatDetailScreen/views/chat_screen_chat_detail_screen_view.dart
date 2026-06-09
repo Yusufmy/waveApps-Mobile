@@ -97,7 +97,13 @@ class ChatScreenChatDetailScreenView
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () => Get.toNamed(Routes.CALL_DETAIL_SCREEN),
+                      onTap: () {
+                        controller.startCall(
+                          conversationID: controller.conversationId.value,
+                          receiverID: controller.idUserRechiver.value,
+                          type: "voice",
+                        );
+                      },
                       child: SizedBox(
                         child: Image.asset(
                           "assets/images/voiceCall.png",
@@ -108,7 +114,13 @@ class ChatScreenChatDetailScreenView
                     ),
                     const SizedBox(width: 24),
                     GestureDetector(
-                      onTap: () => Get.toNamed(Routes.CALL_DETAIL_SCREEN),
+                      onTap: () {
+                        controller.startCall(
+                          conversationID: controller.conversationId.value,
+                          receiverID: controller.idUserRechiver.value,
+                          type: "video",
+                        );
+                      },
                       child: SizedBox(
                         child: Image.asset(
                           "assets/images/videoCall.png",

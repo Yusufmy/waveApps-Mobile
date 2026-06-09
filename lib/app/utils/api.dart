@@ -4,8 +4,8 @@ import 'package:http/http.dart' as http;
 import 'package:wive_app/app/common/get.dart';
 
 class Api {
-  static const String baseUrl = 'http://192.168.0.104:8080/api/';
-  static const String publicUrl = 'http://192.168.0.104:8080/';
+  static const String baseUrl = 'http://192.168.0.106:8080/api/';
+  static const String publicUrl = 'http://192.168.0.106:8080/';
 
   ///AUTH
   static const String loginUrl = '${baseUrl}login';
@@ -26,7 +26,7 @@ class Api {
   static const String storiesUrl = '${baseUrl}stories';
 
   ///USER (CALL)
-  static const String callUrl = '${baseUrl}calls/start';
+  static const String callUrl = '${baseUrl}calls';
 
   ///TOKEN FCM
   static const String fcmUrl = '${baseUrl}save-fcm-token';
@@ -226,6 +226,67 @@ class Api {
 
     final request = http.post(
       Uri.parse(deliveredMessagesUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> startCallUrl(var body) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse("$callUrl/start"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> acceptCallUrl(var id) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse("$callUrl/$id/accept"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> rejectCallUrl(var id) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse("$callUrl/$id/reject"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> endCallUrl(var id) async {
+    final token = await getToken();
+
+    final request = http.post(
+      Uri.parse("$callUrl/$id/end"),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',

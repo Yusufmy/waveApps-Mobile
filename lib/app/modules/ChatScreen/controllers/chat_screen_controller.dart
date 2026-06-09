@@ -3,9 +3,11 @@ import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
 
+import '../../../routes/app_pages.dart';
 import '../../../service/profile_core_service.dart';
 import '../../../utils/api.dart';
 import '../../../utils/widgets/alert_global_widget.dart';
@@ -33,11 +35,15 @@ class ChatScreenController extends GetxController {
 
   StreamSubscription? roomsSub;
 
+  ///CALL
+  final DatabaseReference callRef = FirebaseDatabase.instance.ref("calls");
+
   @override
   void onInit() {
     super.onInit();
     updateData();
     listenRooms();
+    listenIncomingCall();
   }
 
   void updateData() async {
@@ -213,6 +219,37 @@ class ChatScreenController extends GetxController {
     } catch (e) {
       print("Terjadi kesalahan : $e");
     }
+  }
+
+  ///CALL IN
+  void listenIncomingCall() {
+    callRef.onChildAdded.listen((event) {
+      if (event.snapshot.value == null) return;
+
+      final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+
+      if (data["receiver_id"].toString() != idUserLogin.value.toString()) {
+        return;
+      }
+
+      if (data["status"] != "ringing") {
+        return;
+      }
+
+      showIncomingCall(data);
+    });
+  }
+
+  void showIncomingCall(Map<String, dynamic> data) {
+    FlutterRingtonePlayer().play(
+      android: AndroidSounds.ringtone,
+      ios: IosSounds.glass,
+      looping: true,
+      volume: 1.0,
+      asAlarm: false,
+    );
+
+    Get.toNamed(Routes.CALL_DETAIL_SCREEN, arguments: data);
   }
 
   @override
