@@ -170,7 +170,7 @@ class CallDetailScreenView extends GetView<CallDetailScreenController> {
                   GestureDetector(
                     onTap: () {
                       print(controller.callData);
-                      print(controller.callData["call_id"]);
+                      print(controller.callData["id"]);
 
                       controller.endtCall(controller.callData["id"]);
                     },

@@ -223,16 +223,32 @@ class ChatScreenController extends GetxController {
 
   ///CALL IN
   void listenIncomingCall() {
+    // Ambil timestamp sekarang sebelum listen
+    // agar hanya terima call BARU setelah app berjalan
+    final listenStartTime = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
     callRef.onChildAdded.listen((event) {
       if (event.snapshot.value == null) return;
 
       final data = Map<String, dynamic>.from(event.snapshot.value as Map);
 
+      // Filter: hanya untuk user ini
       if (data["receiver_id"].toString() != idUserLogin.value.toString()) {
         return;
       }
 
+      // Filter: hanya status ringing
       if (data["status"] != "ringing") {
+        return;
+      }
+
+      // Filter: hanya call yang dibuat SETELAH app listen
+      // Ini mencegah call lama dari Firebase ter-trigger
+      final createdAt = data["created_at"];
+      if (createdAt != null && createdAt < listenStartTime) {
+        print(
+          "SKIP call lama: created_at=$createdAt < listenStart=$listenStartTime",
+        );
         return;
       }
 
@@ -241,6 +257,9 @@ class ChatScreenController extends GetxController {
   }
 
   void showIncomingCall(Map<String, dynamic> data) {
+    print("INCOMING CALL DATA: $data");
+    print("room_id yang akan dipakai: ${data["room_id"]}");
+
     FlutterRingtonePlayer().play(
       android: AndroidSounds.ringtone,
       ios: IosSounds.glass,
@@ -249,7 +268,14 @@ class ChatScreenController extends GetxController {
       asAlarm: false,
     );
 
-    Get.toNamed(Routes.CALL_DETAIL_SCREEN, arguments: data);
+    // Tambahkan isCaller: false agar CallDetailScreenController tahu
+    Get.toNamed(
+      Routes.CALL_DETAIL_SCREEN,
+      arguments: {
+        ...data,
+        "isCaller": false, // ← tambahkan ini
+      },
+    );
   }
 
   @override

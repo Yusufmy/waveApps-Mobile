@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
+import 'package:wive_app/app/routes/app_pages.dart';
+import 'package:wive_app/app/service/zegoCall_service.dart';
 import 'package:wive_app/app/utils/api.dart';
 
 import '../../../../../utils/call_center.dart';
@@ -18,9 +22,13 @@ class CallDetailScreenController extends GetxController {
   RxBool isAcceptCall = false.obs;
   RxBool isRejectCall = false.obs;
   RxBool isEndCall = false.obs;
+  StreamSubscription? _callStatusSub; // ← tambahkan
 
   Future<void> acceptCall(var idCall) async {
     if (isAcceptCall.value) return;
+
+    print("===== ACCEPT DIPENCET =====");
+    print("CALL ID : $idCall");
 
     try {
       isAcceptCall.value = true;
@@ -33,24 +41,20 @@ class CallDetailScreenController extends GetxController {
       if (res.statusCode == 200 || res.statusCode == 201) {
         callStatus.value = "accepted";
 
-        print("Berhasil menerima : ${res.body}");
+        final roomID = callData["room_id"].toString();
+
+        await ZegoCallService.instance.joinRoom(
+          roomID: roomID,
+          userID: "$userLoginId",
+          userName: "$userNameLogin",
+        );
 
         FlutterRingtonePlayer().stop();
-
-        print("ROOMID : ${callData["room_id"]}");
 
         await FirebaseDatabase.instance
             .ref("calls")
             .child(idCall.toString())
             .update({"status": "accepted"});
-
-        Get.off(
-          () => VoiceCallPage(
-            roomID: callData["room_id"],
-            userID: "$userLoginId",
-            userName: "$userNameLogin",
-          ),
-        );
       } else {
         print("Gagal accept : ${res.body}");
       }
@@ -71,9 +75,17 @@ class CallDetailScreenController extends GetxController {
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         FlutterRingtonePlayer().stop();
+
+        await FirebaseDatabase.instance
+            .ref("calls")
+            .child(idCall.toString())
+            .update({"status": "rejected"});
+
         Get.back();
 
         print("Berhasil reject : ${res.body}");
+      } else {
+        print("Gagal reject : ${res.body}");
       }
     } catch (e) {
       print("Terjadi kesalahan : $e");
@@ -91,10 +103,22 @@ class CallDetailScreenController extends GetxController {
       final res = await Api.endCallUrl(idCall);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
+        await ZegoCallService.instance.leaveRoom(
+          callData["room_id"].toString(),
+        );
+
+        await FirebaseDatabase.instance
+            .ref("calls")
+            .child(idCall.toString())
+            .update({"status": "ended"});
+
         FlutterRingtonePlayer().stop();
+
         Get.back();
 
         print("Berhasil end : ${res.body}");
+      } else {
+        print("Gagal end : ${res.body}");
       }
     } catch (e) {
       print("Terjadi kesalahan : $e");
@@ -103,37 +127,110 @@ class CallDetailScreenController extends GetxController {
     }
   }
 
+  void _listenCallStatus(String callId) {
+    _callStatusSub?.cancel();
+
+    _callStatusSub = FirebaseDatabase.instance
+        .ref("calls")
+        .child(callId)
+        .onValue
+        .listen((event) async {
+          if (event.snapshot.value == null) return;
+
+          final data = Map<String, dynamic>.from(event.snapshot.value as Map);
+          final status = data["status"];
+          callStatus.value = status ?? "ringing";
+
+          print("CALL DETAIL STATUS => $status");
+
+          // HAPUS join room dari sini — jangan ada ZegoCallService di sini
+          // User A sudah join di _joinRoomAsCaller()
+          // User B join di acceptCall()
+
+          if (status == "ended" || status == "rejected") {
+            final roomID =
+                data["room_id"]?.toString() ?? callData["room_id"]?.toString();
+
+            if (roomID != null) {
+              await ZegoCallService.instance.leaveRoom(roomID);
+            }
+
+            FlutterRingtonePlayer().stop();
+            _callStatusSub?.cancel();
+
+            if (Get.currentRoute == Routes.CALL_DETAIL_SCREEN) {
+              Get.back();
+            }
+          }
+        });
+  }
+
+  Future<void> _joinRoomAsCaller() async {
+    try {
+      final userLoginId = await getId();
+      final userNameLogin = await getName();
+      final roomID = callData["room_id"]?.toString();
+
+      if (roomID == null) {
+        print("room_id null, tunggu data lengkap");
+        return;
+      }
+
+      print("USER A JOIN ROOM => $roomID");
+      print("CALLER JOIN ROOM START");
+      print("CALLER JOIN ROOM SUCCESS");
+      await ZegoCallService.instance.joinRoom(
+        roomID: roomID,
+        userID: "$userLoginId",
+        userName: "$userNameLogin",
+      );
+    } catch (e) {
+      print("Error join room as caller: $e");
+    }
+  }
+
   @override
   void onInit() {
     super.onInit();
 
     callData.value = Get.arguments ?? {};
-
     isCaller.value = callData["isCaller"] ?? false;
-
     callStatus.value = callData["status"] ?? "ringing";
 
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    final rawId = callData["id"] ?? callData["call_id"];
+    if (rawId != null) {
+      callData["_resolvedCallId"] = rawId.toString();
+    }
 
+    final resolvedId = callData["_resolvedCallId"];
+    if (resolvedId != null) {
+      _listenCallStatus(resolvedId);
+    }
+
+    // HANYA caller yang auto join
+    // User B (isCaller: false) join HANYA saat tekan accept
+    if (isCaller.value) {
+      _joinRoomAsCaller();
+    }
+    // Tidak ada else di sini — User B tunggu tombol accept ditekan
+
+    print("=== CALL DATA LENGKAP ===");
+    print(callData);
+    print("room_id: ${callData["room_id"]}");
+    print("isCaller: ${callData["isCaller"]}");
+    print("IS CALLER => ${isCaller.value}");
+    print("=========================");
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-
-        // ICON PUTIH
         statusBarIconBrightness: Brightness.light,
-
-        // IOS
         statusBarBrightness: Brightness.dark,
-
         systemNavigationBarColor: Colors.white,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
-  }
-
-  @override
-  void onReady() {
-    super.onReady();
   }
 
   @override

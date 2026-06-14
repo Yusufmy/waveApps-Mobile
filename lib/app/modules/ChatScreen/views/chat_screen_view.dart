@@ -127,7 +127,28 @@ class ChatScreenView extends GetView<ChatScreenController> {
                     SizedBox(
                       child: Column(
                         children: [
-                          buildButtonAddStory(),
+                          // buildButtonAddStory(),
+                          Container(
+                            height: 48,
+                            width: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: controller.userProfile.isLoading.value
+                                  ? null
+                                  : DecorationImage(
+                                      image: NetworkImage(
+                                        controller
+                                                .userProfile
+                                                .photo
+                                                .value
+                                                .isEmpty
+                                            ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.userProfile.name.value)}&background=E5E7EB&color=374151&size=256"
+                                            : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Text(
                             "Add Story",

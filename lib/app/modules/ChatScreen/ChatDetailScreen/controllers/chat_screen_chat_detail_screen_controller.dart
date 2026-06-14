@@ -4,9 +4,11 @@ import 'dart:convert';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
+import 'package:wive_app/app/service/zegoCall_service.dart';
 import 'package:wive_app/app/utils/api.dart';
 
 import '../../../../utils/call_center.dart';
@@ -47,6 +49,7 @@ class ChatScreenChatDetailScreenController extends GetxController {
   //VARIABEL CALL
   RxBool isStartCall = false.obs;
   StreamSubscription? callStatusSub;
+  RxString callStatus = "ringing".obs;
 
   void scrollLastMessage() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -363,17 +366,19 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
           print("CALL STATUS => ${data["status"]}");
 
+          // HAPUS bagian join room dari sini
+          // Join room sekarang dihandle oleh CallDetailScreenController
           if (data["status"] == "accepted") {
-            final userId = await getId();
-            final userName = await getName();
+            callStatus.value = "accepted";
+            // ← tidak ada ZegoCallService di sini
+          }
 
-            Get.off(
-              () => VoiceCallPage(
-                roomID: data["room_id"],
-                userID: "$userId",
-                userName: "$userName",
-              ),
-            );
+          if (data["status"] == "ended") {
+            FlutterRingtonePlayer().stop();
+
+            // Hanya back jika masih di chat screen, bukan call screen
+            // Call screen punya listener sendiri untuk back
+            callStatusSub?.cancel();
           }
         });
   }
