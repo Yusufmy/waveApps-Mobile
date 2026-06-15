@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:wive_app/app/common/get.dart';
 
 class Api {
-  static const String baseUrl = 'http://192.168.0.105:8080/api/';
-  static const String publicUrl = 'http://192.168.0.105:8080/';
+  static const String baseUrl = 'http://192.168.0.100:8080/api/';
+  static const String publicUrl = 'http://192.168.0.100:8080/';
 
   ///AUTH
   static const String loginUrl = '${baseUrl}login';
@@ -296,4 +297,98 @@ class Api {
 
     return response;
   }
+
+static Future<http.StreamedResponse> postStory({
+  required File file,
+  String? caption,
+}) async {
+  final token = await getToken();
+
+  var request = http.MultipartRequest(
+    'POST',
+    Uri.parse(storiesUrl),
+  );
+
+  request.headers.addAll({
+    'Authorization': 'Bearer $token',
+  });
+
+  request.fields['caption'] = caption ?? '';
+
+  request.files.add(
+    await http.MultipartFile.fromPath(
+      'file',
+      file.path,
+    ),
+  );
+
+  return await request.send();
+}
+
+  static Future<http.Response> getListStory() async {
+    final token = await getToken();
+
+    final request = http.get(
+      Uri.parse(storiesUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      }
+    );
+
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> getDetailStory(var id) async {
+    final token = await getToken();
+    final idStory = id ?? "";
+
+    final request = http.get(
+      Uri.parse("$storiesUrl/$idStory"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      }
+    );
+
+    final response = await request;
+
+    return response;
+  }
+
+  static Future<http.Response> deleteDetailStory(var id) async {
+    final token = await getToken();
+    final idStory = id ?? "";
+
+    final request = http.delete(
+      Uri.parse("$storiesUrl/$idStory"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      }
+    );
+
+    final response = await request;
+
+    return response;
+  }
+  
+  static Future<http.Response> getMeStory() async {
+    final token = await getToken();
+
+    final request = http.get(
+      Uri.parse("$storiesUrl/me"),
+      headers: {  
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      }
+    );
+
+    final response = await request;
+
+    return response;
+  }
+  
 }

@@ -5,6 +5,7 @@ abstract class Routes {
   Routes._();
   static const SPLASH_SCREEN = _Paths.SPLASH_SCREEN;
   static const CHAT_SCREEN = _Paths.CHAT_SCREEN;
+  static const ADD_STORY_SCREEN = _Paths.CHAT_SCREEN + _Paths.ADD_STORY_SCREEN;
   static const LOGIN_SCREEN = _Paths.LOGIN_SCREEN;
   static const REGISTER_SCREEN = _Paths.REGISTER_SCREEN;
   static const CHAT_DETAIL_SCREEN =
@@ -19,6 +20,8 @@ abstract class Routes {
       _Paths.PROFILE_SCREEN + _Paths.CHANGE_PROFILE_SCREEN;
   static const SEARCH_USER_SCREEN =
       _Paths.CHAT_SCREEN + _Paths.SEARCH_USER_SCREEN;
+  static const STORY_VIEW_SCREEN =
+      _Paths.CHAT_SCREEN + _Paths.STORY_VIEW_SCREEN;
 }
 
 abstract class _Paths {
@@ -34,4 +37,6 @@ abstract class _Paths {
   static const CALL_DETAIL_SCREEN = '/call-detail-screen';
   static const CHANGE_PROFILE_SCREEN = '/change-profile-screen';
   static const SEARCH_USER_SCREEN = '/search-user-screen';
+  static const ADD_STORY_SCREEN = '/add-story-screen';
+  static const STORY_VIEW_SCREEN = '/story-view-screen';
 }

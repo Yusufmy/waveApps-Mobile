@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:wive_app/app/common/get.dart';
 
 import '../../../routes/app_pages.dart';
@@ -38,16 +40,34 @@ class ChatScreenController extends GetxController {
   ///CALL
   final DatabaseReference callRef = FirebaseDatabase.instance.ref("calls");
 
+  ///STORY USER
+  RxList listStoryUser = [].obs;
+  RxBool isLoadingStory = false.obs;
+
+  ///MY SRTORY
+  RxBool isLoadingMyStory = false.obs;
+  RxBool isLoadingAddStory = false.obs;
+  RxBool isHasStory = false.obs;
+  TextEditingController captionHistory = TextEditingController();
+
+  ///PICK IMAGE
+  final ImagePicker picker = ImagePicker();
+  Rx<File?> selectedImage = Rx<File?>(null);
+  RxString imagePicker = "".obs;
+  RxBool isPickingImage = false.obs;
+
   @override
   void onInit() {
     super.onInit();
     updateData();
     listenRooms();
     listenIncomingCall();
+    getListStoryUser();
   }
 
   void updateData() async {
     idUserLogin.value = await getId() ?? 0;
+    getMyStory();
   }
 
   /// =========================
@@ -276,6 +296,110 @@ class ChatScreenController extends GetxController {
         "isCaller": false, // ← tambahkan ini
       },
     );
+  }
+
+  void getListStoryUser() async {
+    try {
+      isLoadingStory.value = true;
+
+      final res = await Api.getListStory();
+      final resJson = jsonDecode(res.body);
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final List data = resJson['data'];
+        listStoryUser.assignAll(data);
+      } else {
+        print("print Gagal menampilkan sotry");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    } finally {
+      isLoadingStory.value = false;
+    }
+  }
+
+  void getMyStory() async {
+    try {
+      isLoadingMyStory.value = true;
+
+      final res = await Api.getMeStory();
+      final resJson = jsonDecode(res.body);
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        isHasStory.value = resJson['has_story'] ?? false;
+        print("Status story : ${resJson['has_story']}");
+        print("RES JSON : ${resJson}");
+        print("RES BODYNYA : ${res.body}");
+      } else {
+        print("Gagal mengambil data : ${res.body}");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    } finally {
+      isLoadingMyStory.value = false;
+    }
+  }
+
+  Future<void> openGalery() async {
+    if (isPickingImage.value) return;
+
+    try {
+      isPickingImage.value = true;
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      selectedImage.value = File(image.path);
+      imagePicker.value = image.path;
+
+      Get.toNamed(Routes.ADD_STORY_SCREEN);
+    } catch (e) {
+      print("PICK IMAGE ERROR : $e");
+    } finally {
+      isPickingImage.value = false;
+    }
+  }
+
+  Future<void> addStory() async {
+    if (isLoadingAddStory.value) return;
+
+    final file = selectedImage.value;
+
+    if (file == null) {
+      Get.snackbar("Error", "Pilih gambar terlebih dahulu");
+      return;
+    }
+
+    try {
+      isLoadingAddStory.value = true;
+
+      final response = await Api.postStory(
+        file: file,
+        caption: captionHistory.text,
+      );
+
+      final body = await response.stream.bytesToString();
+
+      print(body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        selectedImage.value = null;
+        captionHistory.clear();
+        getMyStory();
+
+        Get.back();
+
+        Get.snackbar("Berhasil", "Story berhasil ditambahkan");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    } finally {
+      isLoadingAddStory.value = false;
+    }
   }
 
   @override

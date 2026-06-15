@@ -124,51 +124,142 @@ class ChatScreenView extends GetView<ChatScreenController> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    SizedBox(
-                      child: Column(
-                        children: [
-                          // buildButtonAddStory(),
-                          Container(
-                            height: 48,
-                            width: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: controller.userProfile.isLoading.value
-                                  ? null
-                                  : DecorationImage(
-                                      image: NetworkImage(
-                                        controller
-                                                .userProfile
-                                                .photo
-                                                .value
-                                                .isEmpty
-                                            ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.userProfile.name.value)}&background=E5E7EB&color=374151&size=256"
-                                            : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
-                                      ),
-                                      fit: BoxFit.cover,
+                    Obx(
+                      () => SizedBox(
+                        child: Column(
+                          children: [
+                            Stack(
+                              alignment: Alignment.center,
+                              clipBehavior: Clip.none,
+                              children: [
+                                if (controller.isHasStory.value == true) ...[
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: AppColors.blueColor,
                                     ),
+                                  ),
+                                ],
+                                Container(
+                                  width: 54,
+                                  height: 54,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    Get.toNamed(
+                                      Routes.STORY_VIEW_SCREEN,
+                                      arguments: {
+                                        "idStory":
+                                            "${controller.idUserLogin.value}",
+                                      },
+                                    );
+                                  },
+                                  child: Container(
+                                    height: 48,
+                                    width: 48,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      image: DecorationImage(
+                                        image: NetworkImage(
+                                          controller
+                                                      .userProfile
+                                                      .photo
+                                                      .value
+                                                      .isEmpty ||
+                                                  controller
+                                                          .userProfile
+                                                          .photo
+                                                          .value ==
+                                                      "null"
+                                              ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent("${controller.userProfile.name}")}&background=E5E7EB&color=374151&size=256"
+                                              : "${Api.publicUrl}storage/${controller.userProfile.photo.value}",
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: -8,
+                                  left: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: controller.isPickingImage.value
+                                        ? null
+                                        : () {
+                                            controller.openGalery();
+                                          },
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.white,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black12,
+                                            blurRadius: 12,
+                                            offset: Offset(0, 8),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.add,
+                                          color: AppColors.blueColor,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Add Story",
-                            style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: AppColors.textGreeyColor,
-                              fontWeight: FontWeight.w400,
+                            const SizedBox(height: 6),
+                            Text(
+                              "You",
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                color: AppColors.textGreeyColor,
+                                fontWeight: FontWeight.w400,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    ...List.generate(10, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: buildProfile(
-                          title: "Alex",
-                          image: "assets/images/profile.jpg",
-                          isStory: true,
+                    Obx(() {
+                      return Row(
+                        children: List.generate(
+                          controller.listStoryUser.length,
+                          (index) {
+                            final data = controller.listStoryUser[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Get.toNamed(
+                                    Routes.STORY_VIEW_SCREEN,
+                                    arguments: {
+                                      "idStory": "${data["user"]["id"]}",
+                                    },
+                                  );
+                                },
+                                child: buildProfile(
+                                  title: "Alex",
+                                  image: "${data["user"]["photo"]}",
+                                  isStory: true,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     }),
@@ -399,13 +490,11 @@ class ChatScreenView extends GetView<ChatScreenController> {
                 color: Colors.white,
                 shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: isStory == true
-                      ? AssetImage("assets/images/profile.jpg")
-                      : NetworkImage(
-                          image == null || image.isEmpty || image == "null"
-                              ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(title ?? "")}&background=E5E7EB&color=374151&size=256"
-                              : "${Api.publicUrl}storage/$image",
-                        ),
+                  image: NetworkImage(
+                    image == null || image.isEmpty || image == "null"
+                        ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(title ?? "")}&background=E5E7EB&color=374151&size=256"
+                        : "${Api.publicUrl}storage/$image",
+                  ),
                   fit: BoxFit.cover,
                 ),
               ),
