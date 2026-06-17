@@ -171,21 +171,22 @@ class CallDetailScreenController extends GetxController {
       final userNameLogin = await getName();
       final roomID = callData["room_id"]?.toString();
 
-      if (roomID == null) {
-        print("room_id null, tunggu data lengkap");
-        return;
-      }
+      print("================================");
+      print("CALLER JOIN ROOM");
+      print("ROOM ID : $roomID");
+      print("USER ID : $userLoginId");
+      print("================================");
+      print("CALLER AKAN JOIN ROOM_ID = $roomID");
 
-      print("USER A JOIN ROOM => $roomID");
-      print("CALLER JOIN ROOM START");
-      print("CALLER JOIN ROOM SUCCESS");
       await ZegoCallService.instance.joinRoom(
-        roomID: roomID,
+        roomID: roomID!,
         userID: "$userLoginId",
         userName: "$userNameLogin",
       );
+
+      print("CALLER JOIN SUCCESS");
     } catch (e) {
-      print("Error join room as caller: $e");
+      print("CALLER JOIN ERROR => $e");
     }
   }
 
@@ -196,6 +197,10 @@ class CallDetailScreenController extends GetxController {
     callData.value = Get.arguments ?? {};
     isCaller.value = callData["isCaller"] ?? false;
     callStatus.value = callData["status"] ?? "ringing";
+
+    print("SAAT MEMBUKA PAGE : ${callData}");
+    print("SAAT MEMBUKA PAGE : ${isCaller.value}");
+    print("SAAT MEMBUKA PAGE : ${callStatus.value}");
 
     final rawId = callData["id"] ?? callData["call_id"];
     if (rawId != null) {

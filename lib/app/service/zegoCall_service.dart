@@ -10,7 +10,7 @@ class ZegoCallService {
   bool isJoinedRoom = false;
 
   Future<void> init() async {
-    if (_initialized) return;
+    // if (_initialized) return;
 
     await ZegoExpressEngine.createEngineWithProfile(
       ZegoEngineProfile(
@@ -22,29 +22,27 @@ class ZegoCallService {
 
     setupListeners();
 
-    _initialized = true;
+    // _initialized = true;
   }
 
   // Pisahkan setup listener dari init
   void setupListeners() {
     ZegoExpressEngine.onRoomStreamUpdate =
         (roomID, updateType, streamList, extendedData) async {
-          print("=== STREAM UPDATE === roomID: $roomID, type: $updateType");
+          print("========== STREAM UPDATE ==========");
+          print("ROOM ID : $roomID");
+          print("UPDATE TYPE : $updateType");
+          print("STREAM COUNT : ${streamList.length}");
+
+          for (final stream in streamList) {
+            print("STREAM DETECTED => ${stream.streamID}");
+          }
 
           if (updateType == ZegoUpdateType.Add) {
             for (final stream in streamList) {
-              print("REMOTE STREAM DETECTED => ${stream.streamID}");
-              await ZegoExpressEngine.instance.startPlayingStream(
-                stream.streamID,
-              );
-              print("PLAYING STREAM => ${stream.streamID}");
-            }
-          }
+              print("START PLAYING => ${stream.streamID}");
 
-          if (updateType == ZegoUpdateType.Delete) {
-            for (final stream in streamList) {
-              print("REMOTE STREAM REMOVED => ${stream.streamID}");
-              await ZegoExpressEngine.instance.stopPlayingStream(
+              await ZegoExpressEngine.instance.startPlayingStream(
                 stream.streamID,
               );
             }
