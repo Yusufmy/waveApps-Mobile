@@ -10,7 +10,7 @@ class ZegoCallService {
   bool isJoinedRoom = false;
 
   Future<void> init() async {
-    // if (_initialized) return;
+    if (_initialized) return;
 
     await ZegoExpressEngine.createEngineWithProfile(
       ZegoEngineProfile(
@@ -22,7 +22,7 @@ class ZegoCallService {
 
     setupListeners();
 
-    // _initialized = true;
+    _initialized = true;
   }
 
   // Pisahkan setup listener dari init
@@ -63,11 +63,53 @@ class ZegoCallService {
     required String roomID,
     required String userID,
     required String userName,
+    required String type,
   }) async {
     // Hapus permission check di sini, sudah di-handle di main.dart
     await init();
 
+    final mic = await Permission.microphone.request();
+
+    print("MIC STATUS => $mic");
+
     print("LOGIN ROOM => $roomID | userID: $userID");
+
+    ZegoExpressEngine
+        .onPublisherStateUpdate = (streamID, state, errorCode, extendedData) {
+      print("PUBLISH STATE => stream=$streamID state=$state error=$errorCode");
+    };
+
+    ZegoExpressEngine.onPublisherCapturedAudioFirstFrame = () {
+      print("MIC AUDIO FIRST FRAME");
+    };
+
+    ZegoExpressEngine.onRoomStateChanged =
+        (roomID, reason, errorCode, extendedData) {
+          print("ROOM STATE => room=$roomID reason=$reason error=$errorCode");
+        };
+
+    ZegoExpressEngine
+        .onPublisherStateUpdate = (streamID, state, errorCode, extendedData) {
+      print("PUBLISH STATE => stream=$streamID state=$state error=$errorCode");
+    };
+
+    await ZegoExpressEngine.instance.startSoundLevelMonitor();
+
+    ZegoExpressEngine.onCapturedSoundLevelUpdate = (level) {
+      print("LOCAL MIC LEVEL => $level");
+    };
+
+    ZegoExpressEngine.onRemoteSoundLevelUpdate = (map) {
+      print("REMOTE LEVEL => $map");
+    };
+
+    if (type == "video") {
+  await ZegoExpressEngine.instance.enableCamera(true);
+  await ZegoExpressEngine.instance.muteMicrophone(false);
+
+  await ZegoExpressEngine.instance.startPreview();
+}
+
 
     await ZegoExpressEngine.instance.loginRoom(
       roomID,

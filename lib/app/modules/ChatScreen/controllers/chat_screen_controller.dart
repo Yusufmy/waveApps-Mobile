@@ -293,7 +293,7 @@ class ChatScreenController extends GetxController {
       Routes.CALL_DETAIL_SCREEN,
       arguments: {
         ...data,
-        "isCaller": true, // ← tambahkan ini
+        "isCaller": false, // ← tambahkan ini
       },
     );
   }

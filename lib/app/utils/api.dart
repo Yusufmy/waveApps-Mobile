@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:wive_app/app/common/get.dart';
 
 class Api {
-  static const String baseUrl = 'http://192.168.0.105:8080/api/';
-  static const String publicUrl = 'http://192.168.0.105:8080/';
+  static const String baseUrl = 'http://192.168.0.104:8080/api/';
+  static const String publicUrl = 'http://192.168.0.104:8080/';
 
   ///AUTH
   static const String loginUrl = '${baseUrl}login';
@@ -298,32 +298,22 @@ class Api {
     return response;
   }
 
-static Future<http.StreamedResponse> postStory({
-  required File file,
-  String? caption,
-}) async {
-  final token = await getToken();
+  static Future<http.StreamedResponse> postStory({
+    required File file,
+    String? caption,
+  }) async {
+    final token = await getToken();
 
-  var request = http.MultipartRequest(
-    'POST',
-    Uri.parse(storiesUrl),
-  );
+    var request = http.MultipartRequest('POST', Uri.parse(storiesUrl));
 
-  request.headers.addAll({
-    'Authorization': 'Bearer $token',
-  });
+    request.headers.addAll({'Authorization': 'Bearer $token'});
 
-  request.fields['caption'] = caption ?? '';
+    request.fields['caption'] = caption ?? '';
 
-  request.files.add(
-    await http.MultipartFile.fromPath(
-      'file',
-      file.path,
-    ),
-  );
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
-  return await request.send();
-}
+    return await request.send();
+  }
 
   static Future<http.Response> getListStory() async {
     final token = await getToken();
@@ -333,7 +323,7 @@ static Future<http.StreamedResponse> postStory({
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
-      }
+      },
     );
 
     final response = await request;
@@ -350,7 +340,7 @@ static Future<http.StreamedResponse> postStory({
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
-      }
+      },
     );
 
     final response = await request;
@@ -367,28 +357,27 @@ static Future<http.StreamedResponse> postStory({
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
-      }
+      },
     );
 
     final response = await request;
 
     return response;
   }
-  
+
   static Future<http.Response> getMeStory() async {
     final token = await getToken();
 
     final request = http.get(
       Uri.parse("$storiesUrl/me"),
-      headers: {  
+      headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
-      }
+      },
     );
 
     final response = await request;
 
     return response;
   }
-  
 }

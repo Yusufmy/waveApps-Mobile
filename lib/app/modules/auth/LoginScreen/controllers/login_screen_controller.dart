@@ -33,7 +33,7 @@ class LoginScreenController extends GetxController {
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         userProfile.updateData();
-        Get.toNamed(Routes.CHAT_SCREEN);
+        Get.offAllNamed(Routes.CHAT_SCREEN);
       } else {
         showAlert(context, text: "${resJson['message']}", isSuccess: false);
       }

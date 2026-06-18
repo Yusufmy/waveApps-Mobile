@@ -10,19 +10,44 @@ import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/service/zegoCall_service.dart';
 import 'package:wive_app/app/utils/api.dart';
 
-import '../../../../../utils/call_center.dart';
-
 class CallDetailScreenController extends GetxController {
   final callData = {}.obs;
 
   RxBool isCaller = false.obs;
 
   RxString callStatus = "ringing".obs;
+  RxString typeCall = "".obs;
 
   RxBool isAcceptCall = false.obs;
   RxBool isRejectCall = false.obs;
   RxBool isEndCall = false.obs;
   StreamSubscription? _callStatusSub; // ← tambahkan
+
+  ///IMAGE USER
+  RxString imageRechiver = "".obs;
+  RxString nameRechiver = "".obs;
+
+  ///DURATION
+  RxString callDuration = "00:00".obs;
+
+  Timer? callTimer;
+  DateTime? callStartTime;
+
+  void startCallTimer() {
+    callTimer?.cancel();
+
+    callStartTime = DateTime.now();
+
+    callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final duration = DateTime.now().difference(callStartTime!);
+
+      final minutes = duration.inMinutes.toString().padLeft(2, '0');
+
+      final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+
+      callDuration.value = "$minutes:$seconds";
+    });
+  }
 
   Future<void> acceptCall(var idCall) async {
     if (isAcceptCall.value) return;
@@ -47,7 +72,10 @@ class CallDetailScreenController extends GetxController {
           roomID: roomID,
           userID: "$userLoginId",
           userName: "$userNameLogin",
+          type: typeCall.value,
         );
+
+        startCallTimer();
 
         FlutterRingtonePlayer().stop();
 
@@ -112,6 +140,8 @@ class CallDetailScreenController extends GetxController {
             .child(idCall.toString())
             .update({"status": "ended"});
 
+        callTimer?.cancel();
+
         FlutterRingtonePlayer().stop();
 
         Get.back();
@@ -143,6 +173,11 @@ class CallDetailScreenController extends GetxController {
 
           print("CALL DETAIL STATUS => $status");
 
+          // JALANKAN TIMER SAAT STATUS BERUBAH KE ACCEPTED
+          if (status == "accepted") {
+            startCallTimer();
+          }
+
           // HAPUS join room dari sini — jangan ada ZegoCallService di sini
           // User A sudah join di _joinRoomAsCaller()
           // User B join di acceptCall()
@@ -156,6 +191,7 @@ class CallDetailScreenController extends GetxController {
             }
 
             FlutterRingtonePlayer().stop();
+            _callStatusSub?.cancel();
             _callStatusSub?.cancel();
 
             if (Get.currentRoute == Routes.CALL_DETAIL_SCREEN) {
@@ -182,6 +218,7 @@ class CallDetailScreenController extends GetxController {
         roomID: roomID!,
         userID: "$userLoginId",
         userName: "$userNameLogin",
+        type: typeCall.value,
       );
 
       print("CALLER JOIN SUCCESS");
@@ -197,6 +234,9 @@ class CallDetailScreenController extends GetxController {
     callData.value = Get.arguments ?? {};
     isCaller.value = callData["isCaller"] ?? false;
     callStatus.value = callData["status"] ?? "ringing";
+    imageRechiver.value = callData["imageRechiver"] ?? "";
+    nameRechiver.value = callData["nameRechiver"] ?? "";
+    typeCall.value = callData["type"] ?? "";
 
     print("SAAT MEMBUKA PAGE : ${callData}");
     print("SAAT MEMBUKA PAGE : ${isCaller.value}");
@@ -232,7 +272,7 @@ class CallDetailScreenController extends GetxController {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.white,
+        systemNavigationBarColor: Colors.black,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
     );
@@ -240,6 +280,7 @@ class CallDetailScreenController extends GetxController {
 
   @override
   void onClose() {
+    callTimer?.cancel();
     super.onClose();
   }
 }

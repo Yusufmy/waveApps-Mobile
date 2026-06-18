@@ -102,6 +102,12 @@ class ChatScreenChatDetailScreenView
                           conversationID: controller.conversationId.value,
                           receiverID: controller.idUserRechiver.value,
                           type: "voice",
+                          imageRechiver:
+                              controller.photo.value.isEmpty ||
+                                  controller.photo.value == "null"
+                              ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.name.value)}&background=E5E7EB&color=374151&size=256"
+                              : "${Api.publicUrl}storage/${controller.photo.value}",
+                          nameRechiver: controller.name.value,
                         );
                       },
                       child: SizedBox(
@@ -119,6 +125,12 @@ class ChatScreenChatDetailScreenView
                           conversationID: controller.conversationId.value,
                           receiverID: controller.idUserRechiver.value,
                           type: "video",
+                          imageRechiver:
+                              controller.photo.value.isEmpty ||
+                                  controller.photo.value == "null"
+                              ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.name.value)}&background=E5E7EB&color=374151&size=256"
+                              : "${Api.publicUrl}storage/${controller.photo.value}",
+                          nameRechiver: controller.name.value,
                         );
                       },
                       child: SizedBox(

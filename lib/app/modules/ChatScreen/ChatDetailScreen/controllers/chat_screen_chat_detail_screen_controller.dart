@@ -315,6 +315,8 @@ class ChatScreenChatDetailScreenController extends GetxController {
     String? conversationID,
     String? receiverID,
     String? type,
+    String? imageRechiver,
+    String? nameRechiver,
   }) async {
     if (isStartCall.value) return;
     try {
@@ -338,7 +340,7 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
         Get.toNamed(
           Routes.CALL_DETAIL_SCREEN,
-          arguments: {...data, "isCaller": true},
+          arguments: {...data, "isCaller": true, "imageRechiver": imageRechiver, "nameRechiver": nameRechiver, "type": type,},
         );
         print("BERHSAIL $type CALL");
         print("RESPONSE BERHASIL BODY CALL : ${res.body}");
