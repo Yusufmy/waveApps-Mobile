@@ -59,7 +59,13 @@ class ChatScreenController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    updateData();
+
+    initData();
+  }
+
+  Future<void> initData() async {
+    idUserLogin.value = await getId() ?? 0;
+
     listenRooms();
     listenIncomingCall();
     getListStoryUser();
@@ -364,13 +370,17 @@ class ChatScreenController extends GetxController {
     }
   }
 
-  Future<void> addStory() async {
+  Future<void> addStory(BuildContext context) async {
     if (isLoadingAddStory.value) return;
 
     final file = selectedImage.value;
 
     if (file == null) {
-      Get.snackbar("Error", "Pilih gambar terlebih dahulu");
+      showAlert(
+        context,
+        text: "Pilih gambar terlebih dahulu",
+        isSuccess: false,
+      );
       return;
     }
 
@@ -393,9 +403,10 @@ class ChatScreenController extends GetxController {
 
         Get.back();
 
-        Get.snackbar("Berhasil", "Story berhasil ditambahkan");
+        showAlert(context, text: "Story berhasil ditambahkan", isSuccess: true);
       }
     } catch (e) {
+      showAlert(context, text: "Terjadi kesalahan", isSuccess: false);
       print("Terjadi kesalahan : $e");
     } finally {
       isLoadingAddStory.value = false;

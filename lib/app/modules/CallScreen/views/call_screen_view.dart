@@ -34,6 +34,7 @@ class CallScreenView extends GetView<CallScreenController> {
                 padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
                 child: buildCall(),
               ),
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -135,79 +136,89 @@ class CallScreenView extends GetView<CallScreenController> {
   }
 
   Widget buildCall() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Recent Chats",
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
+    return Obx(() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Recent Chats",
+            style: GoogleFonts.poppins(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        ...List.generate(5, (index) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                height: 48,
-                width: 48,
-                margin: const EdgeInsets.only(bottom: 24),
-                // padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black26, width: 1),
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: AssetImage("assets/images/profile.jpg"),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Alexander",
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 18,
-                      color: Colors.black87,
+          const SizedBox(height: 32),
+          ...controller.historyCallList.map((call) {
+            final opponent = controller.getOpponent(call);
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 48,
+                  width: 48,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  // padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black26, width: 1),
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: NetworkImage(
+                        "${Api.publicUrl}storage/${opponent['photo']}",
+                      ),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Send me the files....",
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      color: AppColors.textGreeyColor,
-                      fontWeight: FontWeight.w400,
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      opponent['name'] ?? '-',
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.borderGreeyColor,
-                  shape: BoxShape.circle,
+                    const SizedBox(height: 8),
+                    Text(
+                      call['type'] == 'video' ? 'Video Call' : 'Voice Call',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: AppColors.textGreeyColor,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Center(
-                  child: Image.asset(
-                    "assets/images/phoneCall.png",
-                    width: 18,
-                    height: 18,
+                const Spacer(),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.borderGreeyColor,
+                    shape: BoxShape.circle,
                   ),
+                  child: Icon(
+                    controller.getCallIcon(call),
+                    size: 14,
+                    color: controller.getCallIconColor(call),
+                  ),
+                  // child: Center(
+                  //   child: Image.asset(
+                  //     "assets/images/phoneCall.png",
+                  //     width: 18,
+                  //     height: 18,
+                  //   ),
+                  // ),
                 ),
-              ),
-            ],
-          );
-        }),
-      ],
-    );
+              ],
+            );
+          }),
+        ],
+      );
+    });
   }
 }

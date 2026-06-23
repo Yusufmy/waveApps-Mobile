@@ -68,7 +68,7 @@ class AddStoryScreen extends GetView {
                         const SizedBox(width: 16),
                         GestureDetector(
                           onTap: () async {
-                            await controller.addStory();
+                            await controller.addStory(context);
                           },
                           child: Container(
                             padding: EdgeInsets.all(12),

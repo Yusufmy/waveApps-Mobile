@@ -298,6 +298,21 @@ class Api {
     return response;
   }
 
+  static Future<http.Response> getHistoryCallUrl() async {
+    final token = await getToken();
+
+    final request = http.get(
+      Uri.parse("$callUrl/history"),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    final response = await request;
+
+    return response;
+  }
+
   static Future<http.StreamedResponse> postStory({
     required File file,
     String? caption,

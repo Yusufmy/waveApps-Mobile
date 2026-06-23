@@ -1,6 +1,9 @@
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
 import '../config/zego_config.dart';
+import '../modules/ChatScreen/ChatDetailScreen/CallDetailScreen/controllers/call_detail_screen_controller.dart'
+    show CallDetailScreenController;
 
 class ZegoCallService {
   static final ZegoCallService instance = ZegoCallService._();
@@ -42,21 +45,97 @@ class ZegoCallService {
             for (final stream in streamList) {
               print("START PLAYING => ${stream.streamID}");
 
-              await ZegoExpressEngine.instance.startPlayingStream(
-                stream.streamID,
-              );
+              try {
+                final controller = Get.find<CallDetailScreenController>();
+
+                await ZegoExpressEngine.instance.startPlayingStream(
+                  stream.streamID,
+                  canvas: ZegoCanvas(controller.remoteViewID.value),
+                );
+                // await ZegoExpressEngine.instance.startPlayingStream(
+                //   stream.streamID,
+                // );
+
+                print("REMOTE STREAM => ${stream.streamID}");
+
+                /// Nanti jika video sudah memakai canvas
+                /// tambahkan createCanvasView di sini
+                ///
+                /// await ZegoExpressEngine.instance.createCanvasView(
+                ///   (viewID) async {
+                ///     remoteViewID.value = viewID;
+                ///
+                ///     await ZegoExpressEngine.instance.startPlayingStream(
+                ///       stream.streamID,
+                ///       canvas: ZegoCanvas(viewID),
+                ///     );
+                ///   },
+                /// );
+              } catch (e) {
+                print("GAGAL PLAY STREAM => ${stream.streamID} ERROR => $e");
+              }
+            }
+          }
+
+          if (updateType == ZegoUpdateType.Delete) {
+            for (final stream in streamList) {
+              print("STREAM REMOVED => ${stream.streamID}");
             }
           }
         };
 
     ZegoExpressEngine.onRoomStateChanged =
         (roomID, reason, errorCode, extendedData) {
-          print("ROOM STATE => $roomID | reason: $reason | error: $errorCode");
+          print(
+            "ROOM STATE => room=$roomID "
+            "reason=$reason "
+            "error=$errorCode",
+          );
         };
 
     ZegoExpressEngine.onRoomOnlineUserCountUpdate = (roomID, count) {
-      print("=== ONLINE USER COUNT === roomID: $roomID, count: $count");
+      print(
+        "=== ONLINE USER COUNT === "
+        "roomID: $roomID, count: $count",
+      );
     };
+
+    ZegoExpressEngine.onPublisherStateUpdate =
+        (streamID, state, errorCode, extendedData) {
+          print(
+            "PUBLISH STATE => "
+            "stream=$streamID "
+            "state=$state "
+            "error=$errorCode",
+          );
+        };
+
+    ZegoExpressEngine.onPublisherCapturedAudioFirstFrame = () {
+      print("MIC AUDIO FIRST FRAME");
+    };
+
+    ZegoExpressEngine.onCapturedSoundLevelUpdate = (level) {
+      print("LOCAL MIC LEVEL => $level");
+    };
+
+    ZegoExpressEngine.onRemoteSoundLevelUpdate = (map) {
+      print("REMOTE LEVEL => $map");
+    };
+
+    /// Video listener
+    ZegoExpressEngine.onPublisherCapturedVideoFirstFrame = (channel) {
+      print("LOCAL VIDEO FIRST FRAME => $channel");
+    };
+
+    ZegoExpressEngine.onPlayerStateUpdate =
+        (streamID, state, errorCode, extendedData) {
+          print(
+            "PLAYER STATE => "
+            "stream=$streamID "
+            "state=$state "
+            "error=$errorCode",
+          );
+        };
   }
 
   Future<void> joinRoom({
@@ -69,8 +148,10 @@ class ZegoCallService {
     await init();
 
     final mic = await Permission.microphone.request();
+    final camera = await Permission.camera.request();
 
     print("MIC STATUS => $mic");
+    print("CAMERA STATUS => $camera");
 
     print("LOGIN ROOM => $roomID | userID: $userID");
 
@@ -104,12 +185,37 @@ class ZegoCallService {
     };
 
     if (type == "video") {
-  await ZegoExpressEngine.instance.enableCamera(true);
-  await ZegoExpressEngine.instance.muteMicrophone(false);
+      final controller = Get.find<CallDetailScreenController>();
 
-  await ZegoExpressEngine.instance.startPreview();
-}
+      await ZegoExpressEngine.instance.enableCamera(true);
 
+      await ZegoExpressEngine.instance.startPreview(
+        canvas: ZegoCanvas(controller.localViewID.value),
+      );
+      await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
+    }
+
+    print("START SOUND LEVEL MONITOR");
+
+    ZegoExpressEngine.onRoomStateChanged =
+        (roomID, reason, errorCode, extendedData) {
+          print(
+            "ROOM STATE => "
+            "room=$roomID "
+            "reason=$reason "
+            "error=$errorCode",
+          );
+        };
+
+    ZegoExpressEngine.onPublisherStateUpdate =
+        (streamID, state, errorCode, extendedData) {
+          print("========== PUBLISH ==========");
+          print("STREAM : $streamID");
+          print("STATE  : $state");
+          print("ERROR  : $errorCode");
+          print("DATA   : $extendedData");
+        };
+    await ZegoExpressEngine.instance.startSoundLevelMonitor();
 
     await ZegoExpressEngine.instance.loginRoom(
       roomID,
@@ -120,6 +226,10 @@ class ZegoCallService {
     await ZegoExpressEngine.instance.muteMicrophone(false);
     await ZegoExpressEngine.instance.muteSpeaker(false);
     await ZegoExpressEngine.instance.setAudioRouteToSpeaker(true);
+    await ZegoExpressEngine.instance.enableAudioCaptureDevice(true);
+
+    await ZegoExpressEngine.instance.muteMicrophone(false);
+
     await ZegoExpressEngine.instance.startPublishingStream("stream_$userID");
 
     isJoinedRoom = true;

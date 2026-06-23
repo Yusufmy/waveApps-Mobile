@@ -9,6 +9,7 @@ import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/service/zegoCall_service.dart';
 import 'package:wive_app/app/utils/api.dart';
+import 'package:zego_express_engine/zego_express_engine.dart';
 
 class CallDetailScreenController extends GetxController {
   final callData = {}.obs;
@@ -32,6 +33,84 @@ class CallDetailScreenController extends GetxController {
 
   Timer? callTimer;
   DateTime? callStartTime;
+
+  /// VIDEO CALL
+  RxInt localViewID = (-1).obs;
+  RxInt remoteViewID = (-1).obs;
+
+  RxBool isMicMuted = false.obs;
+  RxBool isCameraOff = false.obs;
+  RxBool isFrontCamera = true.obs;
+
+  Future<void> toggleMute() async {
+    try {
+      isMicMuted.value = !isMicMuted.value;
+
+      await ZegoExpressEngine.instance.muteMicrophone(isMicMuted.value);
+
+      print("MIC MUTED => ${isMicMuted.value}");
+    } catch (e) {
+      print("TOGGLE MUTE ERROR => $e");
+    }
+  }
+
+  Future<void> toggleCamera() async {
+    try {
+      isCameraOff.value = !isCameraOff.value;
+
+      await ZegoExpressEngine.instance.enableCamera(!isCameraOff.value);
+
+      print("CAMERA OFF => ${isCameraOff.value}");
+    } catch (e) {
+      print("TOGGLE CAMERA ERROR => $e");
+    }
+  }
+
+  Future<void> switchCamera() async {
+    try {
+      isFrontCamera.value = !isFrontCamera.value;
+
+      await ZegoExpressEngine.instance.useFrontCamera(isFrontCamera.value);
+
+      print("FRONT CAMERA => ${isFrontCamera.value}");
+    } catch (e) {
+      print("SWITCH CAMERA ERROR => $e");
+    }
+  }
+
+  Future<void> _createVideoViews() async {
+    print("STEP 1");
+
+    await ZegoExpressEngine.instance.createCanvasView((viewID) {
+      print("LOCAL CALLBACK => $viewID");
+      localViewID.value = viewID;
+    });
+
+    print("STEP 2");
+
+    await ZegoExpressEngine.instance.createCanvasView((viewID) {
+      print("REMOTE CALLBACK => $viewID");
+      remoteViewID.value = viewID;
+    });
+
+    print("STEP 3");
+
+    await Future.delayed(const Duration(seconds: 2));
+
+    ZegoExpressEngine.onPublisherCapturedVideoFirstFrame = (channel) {
+      print("LOCAL VIDEO FIRST FRAME => $channel");
+    };
+
+    ZegoExpressEngine.onPublisherCapturedAudioFirstFrame = () {
+      print("LOCAL AUDIO FIRST FRAME");
+    };
+
+    print(
+      "FINAL => "
+      "LOCAL=${localViewID.value} "
+      "REMOTE=${remoteViewID.value}",
+    );
+  }
 
   void startCallTimer() {
     callTimer?.cancel();
@@ -67,6 +146,11 @@ class CallDetailScreenController extends GetxController {
         callStatus.value = "accepted";
 
         final roomID = callData["room_id"].toString();
+
+        // TAMBAHKAN INI
+        if (typeCall.value == "video") {
+          await _createVideoViews();
+        }
 
         await ZegoCallService.instance.joinRoom(
           roomID: roomID,
@@ -214,6 +298,10 @@ class CallDetailScreenController extends GetxController {
       print("================================");
       print("CALLER AKAN JOIN ROOM_ID = $roomID");
 
+      if (typeCall.value == "video") {
+        await _createVideoViews();
+      }
+
       await ZegoCallService.instance.joinRoom(
         roomID: roomID!,
         userID: "$userLoginId",
@@ -281,6 +369,14 @@ class CallDetailScreenController extends GetxController {
   @override
   void onClose() {
     callTimer?.cancel();
+    _callStatusSub?.cancel();
+
+    final roomID = callData["room_id"]?.toString();
+
+    if (roomID != null) {
+      ZegoCallService.instance.leaveRoom(roomID);
+    }
+
     super.onClose();
   }
 }
