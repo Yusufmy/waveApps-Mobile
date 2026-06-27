@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wive_app/app/utils/api.dart';
 import 'package:wive_app/app/utils/colors.dart';
+// import 'package:zego_express_engine/zego_express_engine.dart';
 
+import '../../../../../utils/call_center.dart';
 import '../controllers/call_detail_screen_controller.dart';
 
 class CallDetailScreenView extends GetView<CallDetailScreenController> {
@@ -26,93 +28,117 @@ class CallDetailScreenView extends GetView<CallDetailScreenController> {
   }
 
   Widget buildVideoCall() {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Obx(() {
-            print(
-              "START PREVIEW "
-              "LOCAL=${controller.localViewID.value}",
-            );
-            print(
-              "START PLAY "
-              "REMOTE=${controller.remoteViewID.value}",
-            );
-            if (controller.remoteViewID.value == -1) {
-              return const ColoredBox(color: Colors.black);
-            }
+    return Obx(() {
+      // Sebelum accepted — tampilkan waiting screen
+      if (controller.callStatus.value != "accepted") {
+        return _buildWaitingScreen();
+      }
 
-            return Texture(textureId: controller.remoteViewID.value);
-          }),
-        ),
-
-        Positioned(
-          top: 80,
-          right: 16,
-          child: SizedBox(
-            width: 120,
-            height: 180,
-            child: Obx(() {
-              if (controller.localViewID.value == -1) {
-                return const ColoredBox(color: Colors.black);
-              }
-
-              return Texture(textureId: controller.localViewID.value);
-            }),
+      // Setelah accepted — tampilkan Prebuilt call
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: CallPage(
+              roomID: controller.callData['room_id'],
+              userID: "${controller.profile.id.value}",
+              userName: controller.profile.name.value,
+            ),
           ),
-        ),
+        ],
+      );
+    });
+  }
 
-        Positioned(
-          top: 60,
-          left: 0,
-          right: 0,
-          child: Column(
-            children: [
-              Obx(
-                () => Text(
-                  controller.callData["caller_name"] ??
-                      controller.nameRechiver.value,
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-
-              Obx(() {
-                final image = controller.imageRechiver.value.isNotEmpty
-                    ? controller.imageRechiver.value
-                    : controller.callData["caller_photo"] == null
-                    ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.callData["caller_name"])}&background=E5E7EB&color=374151&size=256"
-                    : "${Api.publicUrl}storage/${controller.callData["caller_photo"]}";
-                return Center(
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: NetworkImage(image),
-                        fit: BoxFit.cover,
-                      ),
+  Widget _buildWaitingScreen() {
+    return Container(
+      color: Colors.black,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Obx(() {
+              final image = controller.imageRechiver.value.isNotEmpty
+                  ? controller.imageRechiver.value
+                  : controller.callData["caller_photo"] == null
+                  ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.callData["caller_name"])}&background=E5E7EB&color=374151&size=256"
+                  : "${Api.publicUrl}storage/${controller.callData["caller_photo"]}";
+              return Center(
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: NetworkImage(image),
+                      fit: BoxFit.cover,
                     ),
                   ),
-                );
-              }),
-
-              Obx(
-                () => Text(
-                  controller.callDuration.value,
-                  style: const TextStyle(color: Colors.white70),
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+            Obx(
+              () => Text(
+                controller.callData["caller_name"] ??
+                    controller.nameRechiver.value,
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Menghubungkan...",
+              style: TextStyle(color: Colors.white70),
+            ),
+            // Tombol untuk receiver
+            Obx(() {
+              if (!controller.isCaller.value) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Tombol reject
+                    GestureDetector(
+                      onTap: () => controller.rejectCall(
+                        controller.callData["call_id"] ??
+                            controller.callData["conversation_id"],
+                      ),
+                      child: const CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.call_end, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(width: 40),
+                    // Tombol accept
+                    GestureDetector(
+                      onTap: () =>
+                          controller.acceptCall(controller.callData["call_id"]),
+                      child: const CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.green,
+                        child: Icon(Icons.call, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              // Caller — tombol end saja
+              return GestureDetector(
+                onTap: () =>
+                    controller.endtCall(controller.callData["call_id"]),
+                child: const CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.red,
+                  child: Icon(Icons.call_end, color: Colors.white),
+                ),
+              );
+            }),
+          ],
         ),
-
-        Align(alignment: Alignment.bottomCenter, child: buildCallActions()),
-      ],
+      ),
     );
   }
 

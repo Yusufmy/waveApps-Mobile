@@ -7,34 +7,31 @@ import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
+import 'package:wive_app/app/service/profile_core_service.dart';
 import 'package:wive_app/app/service/zegoCall_service.dart';
 import 'package:wive_app/app/utils/api.dart';
 import 'package:zego_express_engine/zego_express_engine.dart';
 
 class CallDetailScreenController extends GetxController {
+  final profile = Get.find<ProfileCoreService>();
   final callData = {}.obs;
 
   RxBool isCaller = false.obs;
-
   RxString callStatus = "ringing".obs;
   RxString typeCall = "".obs;
 
   RxBool isAcceptCall = false.obs;
   RxBool isRejectCall = false.obs;
   RxBool isEndCall = false.obs;
-  StreamSubscription? _callStatusSub; // ← tambahkan
+  StreamSubscription? _callStatusSub;
 
-  ///IMAGE USER
   RxString imageRechiver = "".obs;
   RxString nameRechiver = "".obs;
 
-  ///DURATION
   RxString callDuration = "00:00".obs;
-
   Timer? callTimer;
   DateTime? callStartTime;
 
-  /// VIDEO CALL
   RxInt localViewID = (-1).obs;
   RxInt remoteViewID = (-1).obs;
 
@@ -45,9 +42,7 @@ class CallDetailScreenController extends GetxController {
   Future<void> toggleMute() async {
     try {
       isMicMuted.value = !isMicMuted.value;
-
       await ZegoExpressEngine.instance.muteMicrophone(isMicMuted.value);
-
       print("MIC MUTED => ${isMicMuted.value}");
     } catch (e) {
       print("TOGGLE MUTE ERROR => $e");
@@ -57,9 +52,7 @@ class CallDetailScreenController extends GetxController {
   Future<void> toggleCamera() async {
     try {
       isCameraOff.value = !isCameraOff.value;
-
       await ZegoExpressEngine.instance.enableCamera(!isCameraOff.value);
-
       print("CAMERA OFF => ${isCameraOff.value}");
     } catch (e) {
       print("TOGGLE CAMERA ERROR => $e");
@@ -69,61 +62,68 @@ class CallDetailScreenController extends GetxController {
   Future<void> switchCamera() async {
     try {
       isFrontCamera.value = !isFrontCamera.value;
-
       await ZegoExpressEngine.instance.useFrontCamera(isFrontCamera.value);
-
       print("FRONT CAMERA => ${isFrontCamera.value}");
     } catch (e) {
       print("SWITCH CAMERA ERROR => $e");
     }
   }
 
+  Future<void> _destroyVideoViews() async {
+    try {
+      if (localViewID.value != -1) {
+        await ZegoExpressEngine.instance.destroyCanvasView(localViewID.value);
+        localViewID.value = -1;
+      }
+      if (remoteViewID.value != -1) {
+        await ZegoExpressEngine.instance.destroyCanvasView(remoteViewID.value);
+        remoteViewID.value = -1;
+      }
+    } catch (e) {
+      print("DESTROY VIEW ERROR => $e");
+    }
+  }
+
   Future<void> _createVideoViews() async {
-    print("STEP 1");
+    // Destroy dulu yang lama
+    await _destroyVideoViews();
+
+    final localCompleter = Completer<int>();
+    final remoteCompleter = Completer<int>();
 
     await ZegoExpressEngine.instance.createCanvasView((viewID) {
-      print("LOCAL CALLBACK => $viewID");
+      print("LOCAL VIEW CREATED => $viewID");
       localViewID.value = viewID;
+      localCompleter.complete(viewID);
     });
-
-    print("STEP 2");
 
     await ZegoExpressEngine.instance.createCanvasView((viewID) {
-      print("REMOTE CALLBACK => $viewID");
+      print("REMOTE VIEW CREATED => $viewID");
       remoteViewID.value = viewID;
+      remoteCompleter.complete(viewID);
     });
 
-    print("STEP 3");
+    await Future.wait([localCompleter.future, remoteCompleter.future]);
 
-    await Future.delayed(const Duration(seconds: 2));
-
-    ZegoExpressEngine.onPublisherCapturedVideoFirstFrame = (channel) {
-      print("LOCAL VIDEO FIRST FRAME => $channel");
-    };
-
-    ZegoExpressEngine.onPublisherCapturedAudioFirstFrame = () {
-      print("LOCAL AUDIO FIRST FRAME");
-    };
+    // Tunggu Flutter render Texture widget dengan ID baru
+    await Future.delayed(const Duration(milliseconds: 800));
 
     print(
-      "FINAL => "
-      "LOCAL=${localViewID.value} "
-      "REMOTE=${remoteViewID.value}",
+      "VIEWS READY => local=${localViewID.value} remote=${remoteViewID.value}",
     );
   }
 
   void startCallTimer() {
-    callTimer?.cancel();
+    // Jangan start lagi kalau sudah jalan
+    if (callTimer != null && callTimer!.isActive) return;
 
+    callTimer?.cancel();
     callStartTime = DateTime.now();
 
     callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final duration = DateTime.now().difference(callStartTime!);
-
       final minutes = duration.inMinutes.toString().padLeft(2, '0');
-
       final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-
       callDuration.value = "$minutes:$seconds";
     });
   }
@@ -131,51 +131,80 @@ class CallDetailScreenController extends GetxController {
   Future<void> acceptCall(var idCall) async {
     if (isAcceptCall.value) return;
 
-    print("===== ACCEPT DIPENCET =====");
-    print("CALL ID : $idCall");
-
     try {
       isAcceptCall.value = true;
-
-      final userLoginId = await getId();
-      final userNameLogin = await getName();
 
       final res = await Api.acceptCallUrl(idCall);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        callStatus.value = "accepted";
-
-        final roomID = callData["room_id"].toString();
-
-        // TAMBAHKAN INI
-        if (typeCall.value == "video") {
-          await _createVideoViews();
-        }
-
-        await ZegoCallService.instance.joinRoom(
-          roomID: roomID,
-          userID: "$userLoginId",
-          userName: "$userNameLogin",
-          type: typeCall.value,
-        );
-
-        startCallTimer();
-
         FlutterRingtonePlayer().stop();
 
+        // Update Firebase — ini yang trigger sender untuk pindah ke CallPage
         await FirebaseDatabase.instance
             .ref("calls")
             .child(idCall.toString())
             .update({"status": "accepted"});
-      } else {
-        print("Gagal accept : ${res.body}");
+
+        // callStatus akan di-update otomatis oleh _listenCallStatus
+        // Tidak perlu set manual di sini
       }
     } catch (e) {
-      print("Terjadi kesalahan : $e");
+      print("acceptCall error: $e");
     } finally {
       isAcceptCall.value = false;
     }
   }
+
+  // Future<void> acceptCall(var idCall) async {
+  //   if (isAcceptCall.value) return;
+
+  //   print("===== ACCEPT DIPENCET =====");
+  //   print("CALL ID : $idCall");
+
+  //   try {
+  //     isAcceptCall.value = true;
+
+  //     final userLoginId = await getId();
+  //     final userNameLogin = await getName();
+
+  //     final res = await Api.acceptCallUrl(idCall);
+
+  //     if (res.statusCode == 200 || res.statusCode == 201) {
+  //       callStatus.value = "accepted";
+
+  //       final roomID = callData["room_id"].toString();
+
+  //       // if (typeCall.value == "video") {
+  //       //   // 1. Init engine dulu
+  //       //   await ZegoCallService.instance.init();
+  //       //   // 2. Buat views — tunggu Flutter render
+  //       //   await _createVideoViews();
+  //       // }
+
+  //       // 3. Join room
+  //       await ZegoCallService.instance.joinRoom(
+  //         roomID: roomID,
+  //         userID: "$userLoginId",
+  //         userName: "$userNameLogin",
+  //         type: typeCall.value,
+  //       );
+
+  //       startCallTimer();
+  //       FlutterRingtonePlayer().stop();
+
+  //       await FirebaseDatabase.instance
+  //           .ref("calls")
+  //           .child(idCall.toString())
+  //           .update({"status": "accepted"});
+  //     } else {
+  //       print("Gagal accept : ${res.body}");
+  //     }
+  //   } catch (e) {
+  //     print("Terjadi kesalahan : $e");
+  //   } finally {
+  //     isAcceptCall.value = false;
+  //   }
+  // }
 
   Future<void> rejectCall(var idCall) async {
     if (isRejectCall.value) return;
@@ -194,7 +223,6 @@ class CallDetailScreenController extends GetxController {
             .update({"status": "rejected"});
 
         Get.back();
-
         print("Berhasil reject : ${res.body}");
       } else {
         print("Gagal reject : ${res.body}");
@@ -215,21 +243,14 @@ class CallDetailScreenController extends GetxController {
       final res = await Api.endCallUrl(idCall);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        await ZegoCallService.instance.leaveRoom(
-          callData["room_id"].toString(),
-        );
+        await _cleanupCall();
 
         await FirebaseDatabase.instance
             .ref("calls")
             .child(idCall.toString())
             .update({"status": "ended"});
 
-        callTimer?.cancel();
-
-        FlutterRingtonePlayer().stop();
-
         Get.back();
-
         print("Berhasil end : ${res.body}");
       } else {
         print("Gagal end : ${res.body}");
@@ -239,6 +260,20 @@ class CallDetailScreenController extends GetxController {
     } finally {
       isEndCall.value = false;
     }
+  }
+
+  // FIX: Satu fungsi cleanup untuk semua kondisi
+  Future<void> _cleanupCall() async {
+    callTimer?.cancel();
+    FlutterRingtonePlayer().stop();
+
+    final roomID = callData["room_id"]?.toString();
+    if (roomID != null) {
+      await ZegoCallService.instance.leaveRoom(roomID);
+    }
+
+    await _destroyVideoViews();
+    await ZegoCallService.instance.destroyEngine();
   }
 
   void _listenCallStatus(String callId) {
@@ -253,31 +288,24 @@ class CallDetailScreenController extends GetxController {
 
           final data = Map<String, dynamic>.from(event.snapshot.value as Map);
           final status = data["status"];
-          callStatus.value = status ?? "ringing";
 
-          print("CALL DETAIL STATUS => $status");
+          print("CALL STATUS => $status");
 
-          // JALANKAN TIMER SAAT STATUS BERUBAH KE ACCEPTED
           if (status == "accepted") {
-            startCallTimer();
+            // Destroy engine lama sebelum Prebuilt init engine baru
+            await ZegoCallService.instance.destroyEngine();
+
+            callStatus.value = "accepted";
+
+            if (isCaller.value) {
+              startCallTimer();
+            }
           }
 
-          // HAPUS join room dari sini — jangan ada ZegoCallService di sini
-          // User A sudah join di _joinRoomAsCaller()
-          // User B join di acceptCall()
-
           if (status == "ended" || status == "rejected") {
-            final roomID =
-                data["room_id"]?.toString() ?? callData["room_id"]?.toString();
-
-            if (roomID != null) {
-              await ZegoCallService.instance.leaveRoom(roomID);
-            }
-
+            _callStatusSub?.cancel();
+            callTimer?.cancel();
             FlutterRingtonePlayer().stop();
-            _callStatusSub?.cancel();
-            _callStatusSub?.cancel();
-
             if (Get.currentRoute == Routes.CALL_DETAIL_SCREEN) {
               Get.back();
             }
@@ -287,6 +315,7 @@ class CallDetailScreenController extends GetxController {
 
   Future<void> _joinRoomAsCaller() async {
     try {
+      print("CALLER WAITING...");
       final userLoginId = await getId();
       final userNameLogin = await getName();
       final roomID = callData["room_id"]?.toString();
@@ -296,12 +325,16 @@ class CallDetailScreenController extends GetxController {
       print("ROOM ID : $roomID");
       print("USER ID : $userLoginId");
       print("================================");
-      print("CALLER AKAN JOIN ROOM_ID = $roomID");
 
-      if (typeCall.value == "video") {
-        await _createVideoViews();
-      }
+      // // 1. Init engine
+      // await ZegoCallService.instance.init();
 
+      // // 2. Buat views kalau video
+      // if (typeCall.value == "video") {
+      //   await _createVideoViews();
+      // }
+
+      // 3. Join room
       await ZegoCallService.instance.joinRoom(
         roomID: roomID!,
         userID: "$userLoginId",
@@ -340,12 +373,9 @@ class CallDetailScreenController extends GetxController {
       _listenCallStatus(resolvedId);
     }
 
-    // HANYA caller yang auto join
-    // User B (isCaller: false) join HANYA saat tekan accept
     if (isCaller.value) {
       _joinRoomAsCaller();
     }
-    // Tidak ada else di sini — User B tunggu tombol accept ditekan
 
     print("=== CALL DATA LENGKAP ===");
     print(callData);
@@ -368,13 +398,18 @@ class CallDetailScreenController extends GetxController {
 
   @override
   void onClose() {
-    callTimer?.cancel();
     _callStatusSub?.cancel();
+    // _cleanupCall tidak bisa di-await di onClose
+    // tapi pastikan minimal cancel timer dan stop ringtone
+    callTimer?.cancel();
+    FlutterRingtonePlayer().stop();
 
     final roomID = callData["room_id"]?.toString();
-
     if (roomID != null) {
-      ZegoCallService.instance.leaveRoom(roomID);
+      ZegoCallService.instance.leaveRoom(roomID).then((_) async {
+        await _destroyVideoViews();
+        await ZegoCallService.instance.destroyEngine();
+      });
     }
 
     super.onClose();
