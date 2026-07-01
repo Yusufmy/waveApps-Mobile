@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:wive_app/app/common/get.dart';
 
 class Api {
-  static const String baseUrl = 'http://192.168.0.112:8080/api/';
-  static const String publicUrl = 'http://192.168.0.112:8080/';
+  static const String baseUrl = 'http://192.168.0.101:8080/api/';
+  static const String publicUrl = 'http://192.168.0.101:8080/';
 
   ///AUTH
   static const String loginUrl = '${baseUrl}login';
@@ -190,20 +190,38 @@ class Api {
     return response;
   }
 
-  static Future<http.Response> sendMessage(var body) async {
+  static Future<http.StreamedResponse> sendMessage({
+    required String conversationId,
+    required String messageType,
+
+    String message = "",
+    File? file,
+    int? duration,
+  }) async {
     final token = await getToken();
 
-    final request = http.post(
-      Uri.parse(messagesUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
-    );
-    final response = await request;
+    final request = http.MultipartRequest("POST", Uri.parse(messagesUrl));
 
-    return response;
+    request.headers["Authorization"] = "Bearer $token";
+
+    request.fields["conversation_id"] = conversationId;
+    request.fields["message_type"] = messageType;
+    request.fields["message"] = message;
+
+    if (duration != null) {
+      request.fields["duration"] = duration.toString();
+    }
+
+    if (file != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath("attachment_url", file.path),
+      );
+    }
+    print("FILE EXISTS = ${await file?.exists()}");
+    print("FILE PATH   = ${file?.path}");
+    print("FILE SIZE   = ${await file?.length()}");
+
+    return request.send();
   }
 
   static Future<http.Response> readMessage(var conversationId) async {

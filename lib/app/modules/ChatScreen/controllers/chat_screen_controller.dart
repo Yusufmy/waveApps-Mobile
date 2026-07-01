@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
@@ -31,9 +32,12 @@ class ChatScreenController extends GetxController {
   final DatabaseReference db = FirebaseDatabase.instance.ref();
 
   RxList<Map<String, dynamic>> listRoomChat = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> filterListRoomChat =
+      <Map<String, dynamic>>[].obs;
 
   RxBool isLoading = false.obs;
   RxInt idUserLogin = 0.obs;
+  RxInt totalUnreadMessage = 0.obs;
 
   StreamSubscription? roomsSub;
 
@@ -49,6 +53,10 @@ class ChatScreenController extends GetxController {
   RxBool isLoadingAddStory = false.obs;
   RxBool isHasStory = false.obs;
   TextEditingController captionHistory = TextEditingController();
+  final DatabaseReference storyRef = FirebaseDatabase.instance.ref(
+    "story_users",
+  );
+  RxMap<int, bool> storyStatus = <int, bool>{}.obs;
 
   ///PICK IMAGE
   final ImagePicker picker = ImagePicker();
@@ -56,10 +64,18 @@ class ChatScreenController extends GetxController {
   RxString imagePicker = "".obs;
   RxBool isPickingImage = false.obs;
 
+  //Search
+  TextEditingController searchController = TextEditingController();
+  RxString searchText = "".obs;
+
   @override
   void onInit() {
     super.onInit();
-
+    searchController.addListener(() {
+      searchRoomChat(searchController.text);
+      searchText.value = searchController.text;
+      searchRoomChat(searchController.text);
+    });
     initData();
   }
 
@@ -68,12 +84,14 @@ class ChatScreenController extends GetxController {
 
     listenRooms();
     listenIncomingCall();
+    listenStoryUser();
     getListStoryUser();
+    getMyStory();
+    updateData();
   }
 
   void updateData() async {
     idUserLogin.value = await getId() ?? 0;
-    getMyStory();
   }
 
   /// =========================
@@ -194,6 +212,7 @@ class ChatScreenController extends GetxController {
         });
 
         listRoomChat.value = rooms;
+        calculateUnreadMessage();
 
         print("✅ ROOM COUNT: ${rooms.length}");
 
@@ -304,6 +323,30 @@ class ChatScreenController extends GetxController {
     );
   }
 
+  void listenStoryUser() {
+    print("LISTEN STORY START");
+
+    storyRef.onChildChanged.listen((event) {
+      print("🔥 CHILD CHANGED");
+
+      print(event.snapshot.key);
+      print(event.snapshot.value);
+    });
+
+    storyRef.onChildAdded.listen((event) {
+      print("🟢 CHILD ADDED");
+
+      print(event.snapshot.key);
+      print(event.snapshot.value);
+    });
+
+    storyRef.onValue.listen((event) {
+      print("🔵 VALUE CHANGED");
+      getListStoryUser();
+      print(event.snapshot.value);
+    });
+  }
+
   void getListStoryUser() async {
     try {
       isLoadingStory.value = true;
@@ -314,6 +357,15 @@ class ChatScreenController extends GetxController {
       if (res.statusCode == 200 || res.statusCode == 201) {
         final List data = resJson['data'];
         listStoryUser.assignAll(data);
+        // Mapping user_id -> has_story
+        storyStatus.clear();
+
+        for (final item in data) {
+          final stories = item["stories"] as List? ?? [];
+
+          storyStatus[item["user"]["id"]] = stories.isNotEmpty;
+        }
+        print("LIST STATUS STORY : ${storyStatus.toJson()}");
       } else {
         print("print Gagal menampilkan sotry");
       }
@@ -400,7 +452,17 @@ class ChatScreenController extends GetxController {
         selectedImage.value = null;
         captionHistory.clear();
         getMyStory();
-
+        SystemChrome.setSystemUIOverlayStyle(
+          const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.dark, // Android
+            statusBarBrightness: Brightness.light, // iOS
+            // Navigation Bar
+            systemNavigationBarColor: Colors.white,
+            systemNavigationBarIconBrightness: Brightness.dark,
+            systemNavigationBarDividerColor: Colors.white,
+          ),
+        );
         Get.back();
 
         showAlert(context, text: "Story berhasil ditambahkan", isSuccess: true);
@@ -411,6 +473,66 @@ class ChatScreenController extends GetxController {
     } finally {
       isLoadingAddStory.value = false;
     }
+  }
+
+  void calculateUnreadMessage() {
+    int total = 0;
+
+    for (final room in listRoomChat) {
+      final participantsRaw = room['participants'];
+
+      if (participantsRaw is! List) continue;
+
+      for (final item in participantsRaw) {
+        if (item is! Map) continue;
+
+        final participant = Map<String, dynamic>.from(item);
+
+        final id = participant['user_id'] ?? participant['id'];
+
+        if (id.toString() == idUserLogin.value.toString()) {
+          total += (participant['unread_count'] ?? 0) as int;
+          break;
+        }
+      }
+    }
+
+    totalUnreadMessage.value = total;
+  }
+
+  void searchRoomChat(String keyword) {
+    keyword = keyword.trim().toLowerCase();
+
+    if (keyword.isEmpty) {
+      filterListRoomChat.assignAll(listRoomChat);
+      return;
+    }
+
+    final result = listRoomChat.where((room) {
+      final List participants = List.from(room['participants'] ?? []);
+
+      final otherUser = participants.firstWhere((u) {
+        if (u == null) return false;
+
+        final id = u['user_id'] ?? u['id'];
+
+        return id.toString() != idUserLogin.value.toString();
+      }, orElse: () => null);
+
+      if (otherUser == null) return false;
+
+      final name = (otherUser['name'] ?? "").toString().toLowerCase();
+      final lastMessage = (room['last_message'] ?? "").toString().toLowerCase();
+
+      return name.contains(keyword) || lastMessage.contains(keyword);
+    }).toList();
+
+    filterListRoomChat.assignAll(result);
+  }
+
+  void clearSearch() {
+    searchController.clear();
+    filterListRoomChat.assignAll(listRoomChat);
   }
 
   @override

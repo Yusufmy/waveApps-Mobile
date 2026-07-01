@@ -17,8 +17,8 @@ class CallScreenView extends GetView<CallScreenController> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.only(top: 12, bottom: 48),
-
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
                 padding: const EdgeInsetsGeometry.symmetric(horizontal: 16),
@@ -80,55 +80,74 @@ class CallScreenView extends GetView<CallScreenController> {
 
   Widget buildSearch() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "23",
-              style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-                fontSize: 40,
-              ),
-            ),
-            Text(
-              "audio, video calls",
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                color: AppColors.textGreeyColor,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
+        Expanded(
+          child: Obx(() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${controller.historyCallList.length}",
+                  style: GoogleFonts.poppins(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                    fontSize: 40,
+                  ),
+                ),
+                Text(
+                  "voice, video calls",
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: AppColors.textGreeyColor,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            );
+          }),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: AppColors.borderGreeyColor),
-          ),
-          child: Row(
-            children: [
-              Image.asset(
-                "assets/images/search.png",
-                width: 24,
-                height: 24,
-                color: Colors.black26,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                "Search friends",
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: AppColors.borderGreeyColor),
+            ),
+            child: Row(
+              children: [
+                Image.asset(
+                  "assets/images/search.png",
+                  width: 24,
+                  height: 24,
                   color: Colors.black26,
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Flexible(
+                  child: TextField(
+                    controller: controller.searchController,
+                    autofocus: true,
+                    onChanged: (e) => controller.searchHistoryCall,
+                    style: GoogleFonts.poppins(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: "Search friend...",
+                      hintStyle: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textGreeyColor,
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
@@ -137,6 +156,9 @@ class CallScreenView extends GetView<CallScreenController> {
 
   Widget buildCall() {
     return Obx(() {
+      final room = controller.searchText.value.isEmpty
+          ? controller.historyCallList
+          : controller.filterHistoryCallList;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -149,74 +171,83 @@ class CallScreenView extends GetView<CallScreenController> {
             ),
           ),
           const SizedBox(height: 32),
-          ...controller.historyCallList.map((call) {
-            final opponent = controller.getOpponent(call);
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 48,
-                  width: 48,
-                  margin: const EdgeInsets.only(bottom: 24),
-                  // padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.black26, width: 1),
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage(
-                        "${Api.publicUrl}storage/${opponent['photo']}",
-                      ),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      opponent['name'] ?? '-',
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 18,
-                        color: Colors.black87,
+          if (room.isEmpty) ...[
+            Center(
+              child: Text(
+                "Not found",
+                style: GoogleFonts.poppins(fontSize: 16, color: Colors.black54),
+              ),
+            ),
+          ] else 
+            ...room.map((call) {
+              final opponent = controller.getOpponent(call);
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    height: 48,
+                    width: 48,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    // padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.black26, width: 1),
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: NetworkImage(
+                          "${Api.publicUrl}storage/${opponent['photo']}",
+                        ),
+                        fit: BoxFit.cover,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      call['type'] == 'video' ? 'Video Call' : 'Voice Call',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: AppColors.textGreeyColor,
-                        fontWeight: FontWeight.w400,
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        opponent['name'] ?? '-',
+                        style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        call['type'] == 'video' ? 'Video Call' : 'Voice Call',
+                        style: GoogleFonts.poppins(
+                          fontSize: 12,
+                          color: AppColors.textGreeyColor,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.borderGreeyColor,
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                const Spacer(),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.borderGreeyColor,
-                    shape: BoxShape.circle,
+                    child: Icon(
+                      controller.getCallIcon(call),
+                      size: 14,
+                      color: controller.getCallIconColor(call),
+                    ),
+                    // child: Center(
+                    //   child: Image.asset(
+                    //     "assets/images/phoneCall.png",
+                    //     width: 18,
+                    //     height: 18,
+                    //   ),
+                    // ),
                   ),
-                  child: Icon(
-                    controller.getCallIcon(call),
-                    size: 14,
-                    color: controller.getCallIconColor(call),
-                  ),
-                  // child: Center(
-                  //   child: Image.asset(
-                  //     "assets/images/phoneCall.png",
-                  //     width: 18,
-                  //     height: 18,
-                  //   ),
-                  // ),
-                ),
-              ],
-            );
-          }),
+                ],
+              );
+            }),
         ],
       );
     });

@@ -31,7 +31,7 @@ class CallDetailScreenView extends GetView<CallDetailScreenController> {
     return Obx(() {
       // Sebelum accepted — tampilkan waiting screen
       if (controller.callStatus.value != "accepted") {
-        return _buildWaitingScreen();
+        return SafeArea(child: _buildWaitingScreen());
       }
 
       // Setelah accepted — tampilkan Prebuilt call
@@ -51,93 +51,180 @@ class CallDetailScreenView extends GetView<CallDetailScreenController> {
 
   Widget _buildWaitingScreen() {
     return Container(
-      color: Colors.black,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Obx(() {
-              final image = controller.imageRechiver.value.isNotEmpty
-                  ? controller.imageRechiver.value
-                  : controller.callData["caller_photo"] == null
-                  ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.callData["caller_name"])}&background=E5E7EB&color=374151&size=256"
-                  : "${Api.publicUrl}storage/${controller.callData["caller_photo"]}";
-              return Center(
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage(image),
-                      fit: BoxFit.cover,
-                    ),
+      color: AppColors.blueColor,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Obx(() {
+          //   final image = controller.imageRechiver.value.isNotEmpty
+          //       ? controller.imageRechiver.value
+          //       : controller.callData["caller_photo"] == null
+          //       ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.callData["caller_name"])}&background=E5E7EB&color=374151&size=256"
+          //       : "${Api.publicUrl}storage/${controller.callData["caller_photo"]}";
+          //   return Center(
+          //     child: Container(
+          //       width: 60,
+          //       height: 60,
+          //       decoration: BoxDecoration(
+          //         shape: BoxShape.circle,
+          //         image: DecorationImage(
+          //           image: NetworkImage(image),
+          //           fit: BoxFit.cover,
+          //         ),
+          //       ),
+          //     ),
+          //   );
+          // }),
+          // const SizedBox(height: 16),
+          // Obx(
+          //   () => Text(
+          //     controller.callData["caller_name"] ??
+          //         controller.nameRechiver.value,
+          //     style: GoogleFonts.poppins(
+          //       fontSize: 24,
+          //       fontWeight: FontWeight.w600,
+          //       color: Colors.white,
+          //     ),
+          //   ),
+          // ),
+          // const SizedBox(height: 8),
+          // const Text(
+          //   "Menghubungkan...",
+          //   style: TextStyle(color: Colors.white70),
+          // ),
+          // Tombol untuk receiver
+          Padding(
+            padding: const EdgeInsets.only(top: 90),
+            child: Center(
+              child: Obx(
+                () => Text(
+                  controller.callData["caller_name"] ??
+                      controller.nameRechiver.value,
+                  style: GoogleFonts.poppins(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                ),
-              );
-            }),
-            const SizedBox(height: 16),
-            Obx(
-              () => Text(
-                controller.callData["caller_name"] ??
-                    controller.nameRechiver.value,
-                style: GoogleFonts.poppins(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "Menghubungkan...",
-              style: TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              "End-to-end encrypted",
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: Colors.white,
+              ),
             ),
-            // Tombol untuk receiver
-            Obx(() {
-              if (!controller.isCaller.value) {
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Tombol reject
-                    GestureDetector(
-                      onTap: () => controller.rejectCall(
-                        controller.callData["call_id"] ??
-                            controller.callData["conversation_id"],
-                      ),
-                      child: const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.red,
-                        child: Icon(Icons.call_end, color: Colors.white),
-                      ),
-                    ),
-                    const SizedBox(width: 40),
-                    // Tombol accept
-                    GestureDetector(
-                      onTap: () =>
-                          controller.acceptCall(controller.callData["call_id"]),
-                      child: const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.green,
-                        child: Icon(Icons.call, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                );
-              }
-              // Caller — tombol end saja
-              return GestureDetector(
-                onTap: () =>
-                    controller.endtCall(controller.callData["call_id"]),
-                child: const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.red,
-                  child: Icon(Icons.call_end, color: Colors.white),
+          ),
+          const SizedBox(height: 32),
+          Obx(() {
+            if (controller.callStatus.value == "accepted") {
+              return Text(
+                controller.callDuration.value,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
                 ),
               );
-            }),
-          ],
-        ),
+            }
+
+            String statusText = "Calling...";
+
+            if (!controller.isCaller.value &&
+                controller.callStatus.value == "ringing") {
+              statusText = "Incoming Call...";
+            }
+
+            if (controller.callStatus.value == "rejected") {
+              statusText = "Call Rejected";
+            }
+
+            if (controller.callStatus.value == "ended") {
+              statusText = "Call Ended";
+            }
+
+            return Text(
+              statusText,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w400,
+                color: Colors.white,
+              ),
+            );
+          }),
+          const SizedBox(height: 32),
+          Obx(() {
+            final image = controller.imageRechiver.value.isNotEmpty
+                ? controller.imageRechiver.value
+                : controller.callData["caller_photo"] == null
+                ? "https://ui-avatars.com/api/?name=${Uri.encodeComponent(controller.callData["caller_name"])}&background=E5E7EB&color=374151&size=256"
+                : "${Api.publicUrl}storage/${controller.callData["caller_photo"]}";
+            return Center(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: NetworkImage(image),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            );
+          }),
+          const Spacer(),
+          Obx(() {
+            if (!controller.isCaller.value) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Tombol reject
+                  GestureDetector(
+                    onTap: () => controller.rejectCall(
+                      controller.callData["call_id"] ??
+                          controller.callData["conversation_id"],
+                    ),
+                    child: const CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.call_end, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 40),
+                  // Tombol accept
+                  GestureDetector(
+                    onTap: () =>
+                        controller.acceptCall(controller.callData["call_id"]),
+                    child: const CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.green,
+                      child: Icon(Icons.call, color: Colors.white),
+                    ),
+                  ),
+                ],
+              );
+            }
+            // Caller — tombol end saja
+            return GestureDetector(
+              onTap: () => controller.rejectCall(
+                controller.callData["call_id"] ??
+                    controller.callData["conversation_id"],
+              ),
+              child: const CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.red,
+                child: Icon(Icons.call_end, color: Colors.white),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

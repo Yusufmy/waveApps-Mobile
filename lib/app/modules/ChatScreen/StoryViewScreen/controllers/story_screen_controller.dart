@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 import 'package:wive_app/app/utils/api.dart';
@@ -10,6 +11,7 @@ class StoryScreenController extends GetxController {
   RxList listStory = [].obs;
   RxInt currentIndex = 0.obs;
   RxString idStory = "".obs;
+  RxString idUserLogin = "".obs;
 
   RxDouble progress = 0.0.obs;
   RxBool isPaused = false.obs;
@@ -134,6 +136,20 @@ class StoryScreenController extends GetxController {
     }
   }
 
+  void deleteStory(var id) async {
+    try {
+      final res = await Api.deleteDetailStory(id);
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        Get.back();
+      } else {
+        print("Terjadi kesahalan : ${res.body}");
+      }
+    } catch (e) {
+      print("Terjadi kesalahan : $e");
+    }
+  }
+
   @override
   void onInit() {
     final args = Get.arguments;
@@ -142,6 +158,25 @@ class StoryScreenController extends GetxController {
       idStory.value = args['idStory'] ?? '';
       getDetailList(idStory.value);
     }
+
+    if (args['idUserLogin'] != null) {
+      idUserLogin.value = args['idUserLogin'];
+      print("USER LOGIN : ${idUserLogin.value}");
+    }
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        // Status Bar
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+
+        // Navigation Bar
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.transparent,
+      ),
+    );
     super.onInit();
   }
 
@@ -154,6 +189,17 @@ class StoryScreenController extends GetxController {
   void onClose() {
     progressTimer?.cancel();
     storyTimer?.cancel();
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // Android
+        statusBarBrightness: Brightness.light, // iOS
+        // Navigation Bar
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarDividerColor: Colors.white,
+      ),
+    );
     super.onClose();
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:wive_app/app/utils/api.dart';
+import 'package:wive_app/app/utils/colors.dart';
 
 import '../controllers/story_screen_controller.dart';
 
@@ -15,7 +17,9 @@ class ChatScreenStoryViewScreenView extends GetView<StoryScreenController> {
       body: SafeArea(
         child: Obx(() {
           if (controller.listStory.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: CircularProgressIndicator(color: AppColors.blueColor),
+            );
           }
 
           final story = controller.listStory[controller.currentIndex.value];
@@ -96,7 +100,7 @@ class ChatScreenStoryViewScreenView extends GetView<StoryScreenController> {
                                 margin: const EdgeInsets.symmetric(
                                   horizontal: 2,
                                 ),
-                                height: 3,
+                                height: 1,
                                 decoration: BoxDecoration(
                                   color: Colors.white24,
                                   borderRadius: BorderRadius.circular(10),
@@ -128,11 +132,25 @@ class ChatScreenStoryViewScreenView extends GetView<StoryScreenController> {
                         ),
                       ),
 
+                      const SizedBox(height: 16),
+
                       /// HEADER
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Row(
                           children: [
+                            GestureDetector(
+                              onTap: () {
+                                Get.back();
+                              },
+                              child: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: Colors.white,
+                              ),
+                            ),
+
+                            const SizedBox(width: 16),
+
                             CircleAvatar(
                               radius: 20,
                               backgroundImage: NetworkImage(
@@ -151,16 +169,44 @@ class ChatScreenStoryViewScreenView extends GetView<StoryScreenController> {
                                 ),
                               ),
                             ),
-
-                            IconButton(
-                              onPressed: () {
-                                Get.back();
-                              },
-                              icon: const Icon(
-                                Icons.close,
+                            if ("${story['user_id']}" ==
+                                controller.idUserLogin.value) ...[
+                              PopupMenuButton<String>(
                                 color: Colors.white,
+                                icon: const Icon(
+                                  Icons.more_horiz_outlined,
+                                  color: Colors.white,
+                                ),
+                                onSelected: (value) {
+                                  controller.deleteStory("${story['id']}");
+                                  // if (value == 'delete') {
+                                  //   controller.deleteStory();
+                                  // }
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.red,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          "Hapus Story",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            color: Colors.red,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       ),
@@ -173,7 +219,7 @@ class ChatScreenStoryViewScreenView extends GetView<StoryScreenController> {
                   Positioned(
                     left: 0,
                     right: 0,
-                    bottom: 0,
+                    bottom: 50,
                     child: Container(
                       padding: EdgeInsets.all(16),
                       decoration: BoxDecoration(color: Colors.black26),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void showAlert(
   BuildContext context, {
@@ -165,4 +167,106 @@ class _AnimatedAlertState extends State<_AnimatedAlert>
       ),
     );
   }
+}
+
+void alertSearch(
+  BuildContext context,
+  TextEditingController textEditingController, {
+  ValueChanged<String>? onChanged,
+  VoidCallback? onClose,
+}) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: true,
+    barrierLabel: "Search",
+    barrierColor: Colors.black38,
+    transitionDuration: const Duration(milliseconds: 300),
+    pageBuilder: (_, __, ___) {
+      return SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Material(
+            color: Colors.transparent,
+            child: inputSearch(
+              textEditingController,
+              onChanged: onChanged,
+              onClose: onClose,
+            ),
+          ),
+        ),
+      );
+    },
+    transitionBuilder: (_, animation, __, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, -1),
+          end: Offset.zero,
+        ).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOut,
+          ),
+        ),
+        child: child,
+      );
+    },
+  );
+}
+
+Widget inputSearch(
+  TextEditingController textEditingController, {
+  ValueChanged<String>? onChanged,
+  VoidCallback? onClose,
+}) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+    decoration: const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.vertical(
+        bottom: Radius.circular(24),
+      ),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: textEditingController,
+            autofocus: true,
+            onChanged: onChanged,
+            style: GoogleFonts.poppins(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w400,
+            ),
+            decoration: InputDecoration(
+              hintText: "Search friend...",
+              hintStyle: GoogleFonts.poppins(
+                fontWeight: FontWeight.w400,
+                color: Colors.black87,
+                fontSize: 16,
+              ),
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: const Color(0xffF5F5F5),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 20),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        GestureDetector(
+          onTap: () {
+            onClose?.call();
+            Get.back();
+          },
+          child: const Icon(Icons.close),
+        ),
+      ],
+    ),
+  );
 }

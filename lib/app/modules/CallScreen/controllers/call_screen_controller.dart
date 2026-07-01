@@ -10,6 +10,11 @@ class CallScreenController extends GetxController {
   final userProfile = Get.find<ProfileCoreService>();
 
   RxList historyCallList = [].obs;
+  RxList filterHistoryCallList = [].obs;
+
+  //Search
+  TextEditingController searchController = TextEditingController();
+  RxString searchText = "".obs;
 
   Map<String, dynamic> getOpponent(Map<String, dynamic> call) {
     final myId = userProfile.id.value;
@@ -22,38 +27,38 @@ class CallScreenController extends GetxController {
   }
 
   IconData getCallIcon(dynamic call) {
-  switch (call['status']) {
-    case 'rejected':
-      return Icons.call_missed;
+    switch (call['status']) {
+      case 'rejected':
+        return Icons.call_missed;
 
-    case 'missed':
-      return Icons.call_missed;
+      case 'missed':
+        return Icons.call_missed;
 
-    case 'ended':
-      return call['caller_id'] == userProfile.id.value
-          ? Icons.call_made
-          : Icons.call_received;
+      case 'ended':
+        return call['caller_id'] == userProfile.id.value
+            ? Icons.call_made
+            : Icons.call_received;
 
-    default:
-      return Icons.call;
+      default:
+        return Icons.call;
+    }
   }
-}
 
-Color getCallIconColor(dynamic call) {
-  switch (call['status']) {
-    case 'rejected':
-      return Colors.red;
+  Color getCallIconColor(dynamic call) {
+    switch (call['status']) {
+      case 'rejected':
+        return Colors.red;
 
-    case 'missed':
-      return Colors.red;
+      case 'missed':
+        return Colors.red;
 
-    case 'ended':
-      return Colors.green;
+      case 'ended':
+        return Colors.green;
 
-    default:
-      return Colors.grey;
+      default:
+        return Colors.grey;
+    }
   }
-}
 
   void getHistoryCall() async {
     try {
@@ -71,10 +76,39 @@ Color getCallIconColor(dynamic call) {
     }
   }
 
+  void searchHistoryCall(String keyword) {
+    keyword = keyword.trim().toLowerCase();
+
+    if (keyword.isEmpty) {
+      filterHistoryCallList.assignAll(historyCallList);
+      return;
+    }
+
+    final result = historyCallList.where((call) {
+      final opponent = getOpponent(Map<String, dynamic>.from(call));
+
+      final name = (opponent['name'] ?? "").toString().toLowerCase();
+
+      final type = call['type'] == 'video' ? 'video call' : 'voice call';
+
+      final status = (call['status'] ?? "").toString().toLowerCase();
+
+      return name.contains(keyword) ||
+          type.contains(keyword) ||
+          status.contains(keyword);
+    }).toList();
+
+    filterHistoryCallList.assignAll(result);
+  }
+
   final count = 0.obs;
   @override
   void onInit() {
     getHistoryCall();
+    searchController.addListener(() {
+      searchText.value = searchController.text;
+      searchHistoryCall(searchController.text);
+    });
     super.onInit();
   }
 

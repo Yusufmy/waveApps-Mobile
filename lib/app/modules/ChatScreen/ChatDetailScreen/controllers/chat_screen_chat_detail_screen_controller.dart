@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:wive_app/app/common/get.dart';
 import 'package:wive_app/app/routes/app_pages.dart';
 import 'package:wive_app/app/service/zegoCall_service.dart';
@@ -22,6 +26,10 @@ class ChatScreenChatDetailScreenController extends GetxController {
   RxBool isTyping = false.obs;
   Timer? typingTimer;
   StreamSubscription? typingSub;
+
+  ///EMOJI
+  final isEmojiVisible = false.obs;
+  final messageFocus = FocusNode();
 
   RxString name = "".obs; //NAME RECHIVER
   RxString photo = "".obs; //PHOTO RECHIVER
@@ -50,6 +58,40 @@ class ChatScreenChatDetailScreenController extends GetxController {
   RxBool isStartCall = false.obs;
   StreamSubscription? callStatusSub;
   RxString callStatus = "ringing".obs;
+
+  //VOICE
+  final RecorderController recorderController = RecorderController();
+  RxBool isShowVoiceWave = false.obs;
+  RxBool isRecording = false.obs;
+  RxString recordPath = "".obs;
+  RxInt duration = 0.obs;
+  Timer? recordTimer;
+  // final PlayerController playerController = PlayerController();
+  // final stopVoice = false.obs;
+  RxnString currentPlayingAudioId = RxnString();
+  PlayerController? _activePlayer;
+
+  void registerActivePlayer(String id, PlayerController controller) {
+    _activePlayer = controller;
+  }
+
+  Future<void> stopCurrentAudio() async {
+    try {
+      await _activePlayer?.pausePlayer();
+    } catch (_) {}
+    currentPlayingAudioId.value = null;
+    _activePlayer = null;
+  }
+
+  void toggleEmoji(BuildContext context) {
+    if (isEmojiVisible.value) {
+      isEmojiVisible.value = false;
+      FocusScope.of(context).requestFocus(messageFocus);
+    } else {
+      FocusScope.of(context).unfocus();
+      isEmojiVisible.value = true;
+    }
+  }
 
   void scrollLastMessage() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -232,44 +274,98 @@ class ChatScreenChatDetailScreenController extends GetxController {
     }
   }
 
-  void sendMessage(BuildContext context, String conversationId) async {
-    final text = messageController.text.trim();
+  Future<void> sendMessage({
+    required BuildContext context,
+    required String conversationId,
 
+    String message = "",
+    String messageType = "text",
+
+    File? file,
+    int? duration,
+  }) async {
+    debugPrint("========== SEND MESSAGE ==========");
+    debugPrint("Conversation : $conversationId");
+    debugPrint("Type         : $messageType");
+    debugPrint("Message      : $message");
+    debugPrint("File         : ${file?.path}");
+    debugPrint("Duration     : $duration");
+
+    debugPrint("[1] Update typing...");
     await updateTyping(false);
 
-    if (text.isEmpty) return;
-
-    messageController.clear();
+    debugPrint("[2] Validasi message...");
+    if (messageType == "text" && message.trim().isEmpty) {
+      debugPrint("❌ Text kosong");
+      return;
+    }
 
     final tempId = "temp_${DateTime.now().millisecondsSinceEpoch}";
 
+    debugPrint("[3] Temp ID : $tempId");
+
+    if (messageType == "text") {
+      debugPrint("[4] Clear Text Controller");
+      messageController.clear();
+    }
+
+    int? fileSize;
+
+    if (file != null) {
+      debugPrint("[5] Ambil ukuran file...");
+      fileSize = await file.length();
+
+      debugPrint("Nama File : ${file.path.split("/").last}");
+      debugPrint("Ukuran    : $fileSize bytes");
+    }
+
     final tempMessage = {
       "temp_id": tempId,
-      "message": text,
+      "conversation_id": conversationId,
       "sender_id": idUserLogin.value,
-      "created_at": DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      "message": message,
+      "message_type": messageType,
+      "attachment_url": file?.path,
+      "duration": duration,
+      "file_name": file?.path.split("/").last,
+      "file_size": fileSize,
       "status": "sending",
+      "created_at": DateTime.now().millisecondsSinceEpoch ~/ 1000,
       "is_local": true,
     };
 
-    // ==========================
-    // TAMBAH KE LIST LOKAL
-    // ==========================
-
+    debugPrint("[6] Tambah ke Local Message");
     localMessages.add(tempMessage);
 
+    debugPrint("[7] Tambah ke Message List");
     messages.add(tempMessage);
 
+    debugPrint("[8] Rebuild Message");
     rebuildGroupedMessages();
 
+    debugPrint("[9] Scroll ke bawah");
     scrollLastMessage();
 
     try {
-      final body = {"conversation_id": conversationId, "message": text};
+      debugPrint("[10] Mulai upload/kirim API...");
 
-      final res = await Api.sendMessage(body);
+      final res = await Api.sendMessage(
+        conversationId: conversationId,
+        message: message,
+        messageType: messageType,
+        file: file,
+        duration: duration,
+      );
 
-      if (res.statusCode != 200 && res.statusCode != 201) {
+      debugPrint("[11] API Response");
+      debugPrint("Status Code : ${res.statusCode}");
+      debugPrint("Body        : ${res.stream}");
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        debugPrint("✅ Berhasil kirim");
+      } else {
+        debugPrint("❌ Gagal kirim");
+
         final index = localMessages.indexWhere((e) => e["temp_id"] == tempId);
 
         if (index != -1) {
@@ -280,7 +376,11 @@ class ChatScreenChatDetailScreenController extends GetxController {
           rebuildGroupedMessages();
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint("========== ERROR SEND ==========");
+      debugPrint(e.toString());
+      debugPrint(stack.toString());
+
       final index = localMessages.indexWhere((e) => e["temp_id"] == tempId);
 
       if (index != -1) {
@@ -291,6 +391,8 @@ class ChatScreenChatDetailScreenController extends GetxController {
         rebuildGroupedMessages();
       }
     }
+
+    debugPrint("========== END SEND ==========");
   }
 
   void rebuildGroupedMessages() {
@@ -340,7 +442,13 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
         Get.toNamed(
           Routes.CALL_DETAIL_SCREEN,
-          arguments: {...data, "isCaller": true, "imageRechiver": imageRechiver, "nameRechiver": nameRechiver, "type": type,},
+          arguments: {
+            ...data,
+            "isCaller": true,
+            "imageRechiver": imageRechiver,
+            "nameRechiver": nameRechiver,
+            "type": type,
+          },
         );
         print("BERHSAIL $type CALL");
         print("RESPONSE BERHASIL BODY CALL : ${res.body}");
@@ -383,6 +491,85 @@ class ChatScreenChatDetailScreenController extends GetxController {
             callStatusSub?.cancel();
           }
         });
+  }
+
+  Future<void> startVoiceRecord() async {
+    isShowVoiceWave.value = true;
+
+    await startRecord();
+  }
+
+  ///Start Record
+  Future<void> startRecord() async {
+    final permission = await Permission.microphone.request();
+
+    if (!permission.isGranted) {
+      Get.snackbar("Error", "Microphone permission denied");
+      return;
+    }
+
+    final dir = await getTemporaryDirectory();
+
+    final path = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
+
+    recordPath.value = path;
+
+    recorderController.reset();
+
+    await recorderController.record(
+      path: path,
+      recorderSettings: RecorderSettings(
+        androidEncoderSettings: AndroidEncoderSettings(
+          androidEncoder: AndroidEncoder.wav,
+        ),
+        iosEncoderSettings: IosEncoderSetting(
+          iosEncoder: IosEncoder.kAudioFormatMPEG4AAC,
+        ),
+        sampleRate: 44100,
+        bitRate: 128000,
+      ),
+    );
+
+    duration.value = 0;
+
+    isRecording.value = true;
+    isShowVoiceWave.value = true;
+
+    recordTimer?.cancel();
+
+    recordTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      duration.value++;
+    });
+  }
+
+  ///Stop Record
+  Future<String?> stopRecord() async {
+    recordTimer?.cancel();
+
+    isRecording.value = false;
+
+    final path = await recorderController.stop();
+
+    return path;
+  }
+
+  //Cancel Record
+  Future<void> cancelRecord() async {
+    recordTimer?.cancel();
+
+    isRecording.value = false;
+
+    final path = await recorderController.stop();
+
+    isShowVoiceWave.value = false;
+
+    if (path != null) {
+      final file = File(path);
+
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
   }
 
   @override
@@ -445,6 +632,9 @@ class ChatScreenChatDetailScreenController extends GetxController {
 
   @override
   void onClose() {
+    recorderController.dispose();
+
+    recordTimer?.cancel();
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
