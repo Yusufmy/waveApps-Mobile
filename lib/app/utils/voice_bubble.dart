@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:audio_waveforms/audio_waveforms.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:wive_app/app/utils/api.dart';
 import 'package:wive_app/app/utils/colors.dart';
+import 'package:wive_app/app/utils/format.dart';
 
 import '../modules/ChatScreen/ChatDetailScreen/controllers/chat_screen_chat_detail_screen_controller.dart';
 
@@ -46,6 +48,25 @@ class _VoiceBubbleState extends State<VoiceBubble> {
     debugPrint(
       "🎙️[$ts][id=$_debugId][audio=${widget.audioUrl.split('/').last}][key=${widget.key}] $msg",
     );
+  }
+
+  Widget buildStatus(String status) {
+    switch (status) {
+      case "sending":
+        return const Icon(Icons.access_time, size: 14, color: Colors.black87);
+
+      case "sent":
+        return const Icon(Icons.check, size: 14, color: Colors.black87);
+
+      case "delivered":
+        return const Icon(Icons.done_all, size: 14, color: Colors.black87);
+
+      case "read":
+        return const Icon(Icons.done_all, size: 14, color: Colors.blue);
+
+      default:
+        return const SizedBox();
+    }
   }
 
   @override
@@ -187,168 +208,116 @@ class _VoiceBubbleState extends State<VoiceBubble> {
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * .5,
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: widget.isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
-            GestureDetector(
-              onTap: playPause,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blue,
-                ),
-                child: isLoading
-                    ? const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Icon(
-                        isPlaying ? Icons.pause : Icons.play_arrow,
-                        color: Colors.white,
+            Row(
+              children: [
+                if (widget.isMe) ...[
+                  GestureDetector(
+                    onTap: playPause,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.blue,
                       ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: AudioFileWaveforms(
-                playerController: _playerController,
-                size: const Size(double.infinity, 40),
-                playerWaveStyle: PlayerWaveStyle(
-                  fixedWaveColor: Colors.grey,
-                  liveWaveColor: AppColors.blueColor,
+                      child: isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                    ),
+                  ),
+                ] else ...[
+                  Text(
+                    "${widget.duration}s",
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ],
+
+                const SizedBox(width: 8),
+                Expanded(
+                  child: AudioFileWaveforms(
+                    playerController: _playerController,
+                    size: const Size(double.infinity, 40),
+                    playerWaveStyle: PlayerWaveStyle(
+                      fixedWaveColor: Colors.grey,
+                      liveWaveColor: AppColors.blueColor,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                if (widget.isMe) ...[
+                  Text(
+                    "${widget.duration}s",
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ] else ...[
+                  GestureDetector(
+                    onTap: playPause,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.blue,
+                      ),
+                      child: isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Icon(
+                              isPlaying ? Icons.pause : Icons.play_arrow,
+                              color: Colors.white,
+                            ),
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(width: 8),
-            Text("${widget.duration}s", style: const TextStyle(fontSize: 12)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  formatChatTime(widget.time),
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    // color: isMe ? Colors.white70 : Colors.black45,
+                    color: Colors.black45,
+                  ),
+                ),
+                if (widget.isMe == true) ...[
+                  const SizedBox(width: 4),
+                  // Image.asset(
+                  //   "assets/images/doubleCheck.png",
+                  //   width: 14,
+                  //   height: 14,
+                  //   color: Colors.blue,
+                  // ),
+                  buildStatus(widget.status),
+                ],
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 }
-// class _VoiceBubbleState extends State<VoiceBubble> {
-//   // final PlayerController playerController = PlayerController();
-//   final chatController = Get.find<ChatScreenChatDetailScreenController>();
-
-//   bool isPlaying = false;
-//   bool isPrepared = false;
-//   bool _busy = false;
-//   late Worker worker;
-
-//   @override
-//   void initState() {
-//     super.initState();
-
-//     // worker = ever(chatController.stopVoice, (value) async {
-//     //   if (value == true) {
-//     //     try {
-//     //       await chatController.playerController.stopPlayer();
-//     //     } catch (_) {}
-//     //   }
-//     // });
-
-//     // prepareAudio();
-//   }
-
-//   Future<void> prepareAudio() async {
-//     final url = "${Api.publicUrl}storage/${widget.audioUrl}";
-
-//     debugPrint("VOICE URL = $url");
-
-//     await chatController.playerController.preparePlayer(path: url);
-//     setState(() {
-//       isPrepared = true;
-//     });
-
-//     chatController.playerController.onCompletion.listen((event) {
-//       setState(() {
-//         isPlaying = false;
-//       });
-//     });
-//   }
-
-//   Future<void> playPause() async {
-//     final url = "${Api.publicUrl}storage/${widget.audioUrl}";
-
-//     await chatController.playerController.preparePlayer(path: url);
-
-//     await chatController.playerController.startPlayer();
-//   }
-
-//   @override
-//   void dispose() {
-//     worker.dispose();
-//     super.dispose();
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Align(
-//       alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
-//       child: Container(
-//         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-//         margin: EdgeInsets.only(left: widget.isMe ? 0 : 14),
-//         constraints: BoxConstraints(
-//           maxWidth: MediaQuery.of(context).size.width * 0.5,
-//         ),
-//         child: Row(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             GestureDetector(
-//               onTap: playPause,
-//               child: Container(
-//                 height: 36,
-//                 width: 36,
-//                 decoration: BoxDecoration(
-//                   shape: BoxShape.circle,
-//                   color: AppColors.blueColor,
-//                 ),
-//                 child: Icon(
-//                   isPlaying ? Icons.pause : Icons.play_arrow,
-//                   color: Colors.white,
-//                 ),
-//               ),
-//             ),
-
-//             const SizedBox(width: 8),
-
-//             Expanded(
-//               child: isPrepared
-//                   ? AudioFileWaveforms(
-//                       playerController: chatController.playerController,
-//                       size: const Size(double.infinity, 40),
-//                       playerWaveStyle: PlayerWaveStyle(
-//                         fixedWaveColor: Colors.grey,
-//                         liveWaveColor: AppColors.blueColor,
-//                       ),
-//                     )
-//                   : Row(
-//                       children: List.generate(
-//                         10,
-//                         (index) => Container(
-//                           margin: const EdgeInsets.symmetric(horizontal: 1.5),
-//                           width: 3,
-//                           height: (index % 5 + 2) * 5,
-//                           decoration: BoxDecoration(
-//                             color: Colors.grey.shade400,
-//                             borderRadius: BorderRadius.circular(10),
-//                           ),
-//                         ),
-//                       ),
-//                     ),
-//             ),
-
-//             const SizedBox(width: 8),
-
-//             Text("${widget.duration}s", style: const TextStyle(fontSize: 12)),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }

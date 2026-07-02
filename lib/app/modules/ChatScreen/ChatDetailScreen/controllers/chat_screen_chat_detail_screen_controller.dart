@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wive_app/app/common/get.dart';
@@ -18,6 +19,7 @@ import 'package:wive_app/app/utils/api.dart';
 import '../../../../utils/call_center.dart';
 import '../../../../utils/format.dart';
 import '../../../../utils/widgets/alert_global_widget.dart';
+import '../views/photo_message_screen_view.dart';
 
 class ChatScreenChatDetailScreenController extends GetxController {
   ///MESSAGE CHAT
@@ -26,6 +28,10 @@ class ChatScreenChatDetailScreenController extends GetxController {
   RxBool isTyping = false.obs;
   Timer? typingTimer;
   StreamSubscription? typingSub;
+
+  ///IMAGE MESSAGE
+  final ImagePicker _picker = ImagePicker();
+  Rx<File?> selectedImage = Rx<File?>(null);
 
   ///EMOJI
   final isEmojiVisible = false.obs;
@@ -66,8 +72,6 @@ class ChatScreenChatDetailScreenController extends GetxController {
   RxString recordPath = "".obs;
   RxInt duration = 0.obs;
   Timer? recordTimer;
-  // final PlayerController playerController = PlayerController();
-  // final stopVoice = false.obs;
   RxnString currentPlayingAudioId = RxnString();
   PlayerController? _activePlayer;
 
@@ -569,6 +573,50 @@ class ChatScreenChatDetailScreenController extends GetxController {
       if (await file.exists()) {
         await file.delete();
       }
+    }
+  }
+
+  Future<void> pickImageFromGallery() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      Get.to(
+        () => PhotoMessageScreenView(
+          imagePath: image.path,
+          conversionId: conversationId.value,
+        ),
+      );
+
+      selectedImage.value = File(image.path);
+    } catch (e) {
+      print("Gallery Error: $e");
+      Get.snackbar("Error", "Gagal memilih gambar dari galeri");
+    }
+  }
+
+  Future<void> pickImageFromCamera() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+      Get.to(
+        () => PhotoMessageScreenView(
+          imagePath: image.path,
+          conversionId: conversationId.value,
+        ),
+      );
+      selectedImage.value = File(image.path);
+    } catch (e) {
+      print("Camera Error: $e");
+      Get.snackbar("Error", "Gagal mengambil gambar dari kamera");
     }
   }
 

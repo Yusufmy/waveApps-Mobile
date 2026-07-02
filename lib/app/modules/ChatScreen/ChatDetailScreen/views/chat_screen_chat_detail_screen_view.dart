@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart' hide Config;
 import 'package:wive_app/app/utils/colors.dart';
+import 'package:wive_app/app/utils/widgets/bottom_sheet_widget.dart';
 
 import '../../../../utils/api.dart';
 import '../../../../utils/format.dart';
@@ -402,6 +403,7 @@ class ChatScreenChatDetailScreenView
                       fontSize: 14,
                       // color: isMe ? Colors.white : Colors.black87,
                       color: Colors.black87,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -477,105 +479,144 @@ class ChatScreenChatDetailScreenView
   }
 
   Widget buildInputMessage(BuildContext context, String conversionId) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.borderGreeyColor,
-        borderRadius: BorderRadius.circular(48),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => controller.toggleEmoji(context),
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.blueColor,
-              ),
-              child: Center(
-                child: Image.asset(
-                  "assets/images/emoji.png",
-                  width: 20,
-                  height: 20,
-                ),
-              ),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.borderGreeyColor,
+              borderRadius: BorderRadius.circular(48),
             ),
-          ),
-          const SizedBox(width: 12),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => controller.toggleEmoji(context),
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.blueColor,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        "assets/images/emoji.png",
+                        width: 20,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
 
-          Expanded(
-            child: TextFormField(
-              controller: controller.messageController,
-              focusNode: controller.messageFocus,
-              cursorColor: AppColors.blueColor,
-              cursorHeight: 20,
-              onTap: () {
-                controller.isEmojiVisible.value = false;
-              },
+                Expanded(
+                  child: TextFormField(
+                    controller: controller.messageController,
+                    focusNode: controller.messageFocus,
+                    cursorColor: AppColors.blueColor,
+                    cursorHeight: 20,
+                    onTap: () {
+                      controller.isEmojiVisible.value = false;
+                    },
 
-              style: GoogleFonts.poppins(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.w400,
-              ),
-              decoration: InputDecoration(
-                hintText: "Type message",
-                hintStyle: GoogleFonts.poppins(
-                  fontWeight: FontWeight.w400,
-                  color: Colors.black87,
-                  fontSize: 16,
+                    style: GoogleFonts.poppins(
+                      color: Colors.black,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: "Type message",
+                      hintStyle: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black87,
+                        fontSize: 16,
+                      ),
+                      border: InputBorder.none,
+                    ),
+                  ),
                 ),
-                border: InputBorder.none,
-              ),
+
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    showBottomSheetWidget(context, 
+                      onPhotoLibraryTap: () {
+                        controller.pickImageFromGallery();
+                        Get.back();
+                      },
+                      onCameraTap: () {
+                        controller.pickImageFromCamera();
+                        Get.back();
+                      },
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.blueColor,
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.attach_file,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              controller.startVoiceRecord();
-            },
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.blueColor,
-              ),
-              child: Center(
-                child: Image.asset(
-                  "assets/images/mic.png",
-                  width: 20,
-                  height: 20,
+        ),
+        const SizedBox(width: 12),
+        Obx(
+          () => controller.messageText.isNotEmpty
+              ? GestureDetector(
+                  onTap: () {
+                    // controller.sendMessage(context, conversionId);
+                    controller.sendMessage(
+                      context: context,
+                      conversationId: conversionId,
+                      message: controller.messageController.text.trim(),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.blueColor,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        "assets/images/send.png",
+                        width: 20,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                )
+              : GestureDetector(
+                  onTap: () {
+                    controller.startVoiceRecord();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.blueColor,
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        "assets/images/mic.png",
+                        width: 20,
+                        height: 20,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () {
-              // controller.sendMessage(context, conversionId);
-              controller.sendMessage(
-                context: context,
-                conversationId: conversionId,
-                message: controller.messageController.text.trim(),
-              );
-            },
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.blueColor,
-              ),
-              child: Center(
-                child: Image.asset(
-                  "assets/images/send.png",
-                  width: 20,
-                  height: 20,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -636,6 +677,8 @@ class ChatScreenChatDetailScreenView
               print("INI PAHT NYA : ${path}");
               if (path == null) return;
 
+              controller.isShowVoiceWave.value = false;
+
               await controller.sendMessage(
                 context: context,
                 conversationId: controller.conversationId.value,
@@ -643,8 +686,6 @@ class ChatScreenChatDetailScreenView
                 file: File(path),
                 duration: controller.duration.value,
               );
-
-              controller.isShowVoiceWave.value = false;
             },
             child: Container(
               padding: EdgeInsets.all(4),
